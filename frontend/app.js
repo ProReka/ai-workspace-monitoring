@@ -255,7 +255,9 @@ function render(s) {
   document.getElementById("wspill").textContent = "ws: " + ((s.meta || {}).workspace || "?");
   document.getElementById("livedot").className = "livedot" + (s.refreshing ? " busy" : "");
   renderTiles(s); renderNotifs(s); renderWorkspace(s);
-  renderQuotas(s); renderCombos(s); renderRuntimes(s); renderMon(s);
+  for (const fn of [renderQuotas, renderCombos, renderRuntimes, renderMon]) {
+    try { fn(s); } catch (e) { console.error("render failed:", fn.name, e); }
+  }
   elapsedTick();
 }
 
@@ -419,6 +421,10 @@ function openSys() {
 note router: ${esc(s.router.note || "-")}${esc(s.ecs.note ? "\nnote ecs: " + s.ecs.note : "")}</pre>`);
 }
 function renderMon(s) {
+  // ECS is optional: without AWS creds the runtimes panel is the source of truth.
+  const live = s.modes.ecs === "live";
+  document.getElementById("infraSec").style.display = live ? "" : "none";
+  if (!live) return;
   document.getElementById("ecs").innerHTML = (s.ecs.services || []).map((v, i) =>
     `<li class="row" data-ecs="${i}" role="button" tabindex="0" aria-label="ECS service ${esc(v.service)}. Activate for details."><span class="mono">${esc(short(v.service, 26))}</span>
      <span class="mono">des ${v.desired} · run ${v.running}</span>
