@@ -20,7 +20,7 @@ export function Section({ id, icon, title, head, resizable, children }) {
     const y0 = e.clientY, h0 = body.getBoundingClientRect().height;
     body.style.overflowY = 'auto';
     const move = (ev) => {
-      body.style.height = Math.min(window.innerHeight * 0.8, Math.max(80, h0 + (y0 - ev.clientY))) + 'px';
+      body.style.height = Math.min(window.innerHeight * 0.8, Math.max(80, h0 + (ev.clientY - y0))) + 'px';
     };
     const up = () => {
       window.removeEventListener('mousemove', move);
@@ -116,6 +116,32 @@ function TaskLine({ cur, snapTs, now, onAgent }) {
   );
 }
 
+function LastIcon({ status }) {
+  const s = String(status || '').toLowerCase();
+  const ic = s === 'completed' ? 'ph-check-circle ok'
+    : s === 'failed' ? 'ph-x-circle crit'
+    : s === 'cancelled' ? 'ph-minus-circle'
+    : s === 'running' ? 'ph-circle-dashed warn' : 'ph-question';
+  return <span className="ld" title={`last run: ${status}`}><i className={`ph ${ic}`}></i></span>;
+}
+
+export function MiniSpark({ spark, ts }) {
+  const cells = Array.isArray(spark) ? spark : [];
+  if (!cells.length) return null;
+  const tot = cells.reduce((n, c) => n + (c[0] || 0), 0);
+  const tok = cells.reduce((n, c) => n + (c[1] || 0), 0);
+  const mx = Math.max(1, ...cells.map((c) => c[0] || 0));
+  return (
+    <div className="minispark" title={`last 60 min: ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
+      {cells.map(([n, t], i) => {
+        const tt = ts ? new Date((ts - (11 - i) * 300) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+        return <i key={i} className={`cell lv${n <= 0 ? 0 : Math.min(4, Math.ceil((4 * n) / mx))}`}
+          title={`${tt} · ${n} task${n === 1 ? '' : 's'} · ${big(t)} tokens`}></i>;
+      })}
+    </div>
+  );
+}
+
 export function AgentCard({ a, onAgent, now, snapTs }) {
   const st = statusOf(a);
   const off = st.group === 'offline';
@@ -130,7 +156,10 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
     >
       <div className="ahead">
         <span className="ava"><Avatar value={a.avatar} /></span>
-        <div className="amin"><div className="aname">{a.agent_name}</div></div>
+        <div className="amin">
+          <div className="aname">{a.agent_name}</div>
+          <div><span className={`pill ${st.cls}`}>{st.label}</span></div>
+        </div>
         <span className={`dot ${st.cls}`}><i className={`ph ${st.icon}`}></i></span>
       </div>
       <div className="amiddle">
@@ -138,21 +167,21 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
           title={`${a.runtime_name || a.daemon_id} — runtime ${a.runtime_online ? 'ON' : 'OFF'}`}>
           <i className={`ph ${a.runtime_online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i>
         </span>
-        <span className="lbl">{st.label}</span>
+        <span className="ld" title={`${a.running} running`}>
+          <i className="ph ph-gear-six"></i>{a.running}</span>
+        <span className="ld" title={`${a.pending_total} queued`}>
+          <i className="ph ph-tray"></i>{a.queued + a.dispatched}</span>
+        {a.oldest_pending_s != null && (a.queued + a.dispatched) > 0 && (
+          <span className="ld warn" title={`waiting ${fmtDur(a.oldest_pending_s)}`}>
+            <i className="ph ph-hourglass-medium"></i>{fmtDur(a.oldest_pending_s)}</span>)}
+        <LastIcon status={a.last_status} />
         <span className="bdgs">
-          {a.pending_total > 0 && (
-            <span className="bdg warn" title={`${a.pending_total} pending tasks`}>
-              <i className="ph ph-tray"></i>{a.pending_total}
-            </span>)}
           {a.last_error && (
-            <span className="bdg crit" title="has error — click for details"><i className="ph ph-warning"></i></span>)}
+            <span className="bdg crit" title={`last run ${a.last_status} — click for details`}><i className="ph ph-warning"></i></span>)}
           {a.stale_runtime && <span className="bdg" title="non-standard runtime">stale</span>}
         </span>
       </div>
-      <div className="small mono">
-        q{a.queued}·d{a.dispatched}·r{a.running}
-        {a.oldest_pending_s != null ? ` · pending ${fmtDur(a.oldest_pending_s)}` : ''} · last: {a.last_status}
-      </div>
+      <MiniSpark spark={a.spark} ts={a.spark_ts} />
       <TaskLine cur={a.current} snapTs={snapTs} now={now} onAgent={onAgent} />
     </div>
   );
@@ -189,22 +218,24 @@ export function QuotaList({ snap, routerUrl, onConn }) {
               <span className="small"> {c.account}</span></span><span className="pill">OFF</span>
             </li>);
         }
-        const min = c.worst_remaining;
-        const cls = min == null ? '' : min <= 10 ? 'hot' : min <= 30 ? 'mid' : '';
+        const wins = c.windows || [];
+        const prim = wins.find((w) => w.label === c.primary) || wins[0];
+        const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
+        const cls = isNaN(pv) ? '' : pv <= 10 ? 'hot' : pv <= 30 ? 'mid' : '';
         return (
           <li className="row stack" key={c.id || i} role="button" tabIndex={0}
             aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
             <span className="ell" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
-              <span className="small">{c.account}</span>
-              <span className="mono" style={{ marginLeft: 'auto' }}>{min == null ? '—' : min.toFixed(0) + '%'}</span>
+              <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
+              <span className="mono" style={{ marginLeft: 'auto' }}>{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
               {(c.last_error || '') !== ''
                 ? <i className="ph ph-warning warn" title="has error — click for details"></i>
                 : <i className="ph ph-check-circle ok"></i>}
               <i className="ph ph-caret-right go"></i>
             </span>
-            <span className={`bar ${cls}`}><i style={{ width: `${min == null ? 0 : min}%` }}></i></span>
+            <span className={`bar ${cls}`}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
           </li>);
       })}
     </ul>
@@ -312,19 +343,30 @@ export function HeatSeg({ range, onRange }) {
 export function Heatmap({ hist }) {
   const buckets = hist?.buckets || [];
   const bs = hist?.bucket_s || 86400;
-  const fmt = (ts) => bs >= 86400
-    ? new Date(ts * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-    : new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const max = Math.max(1, ...(hist?.agents || []).flatMap((g) => g.scores));
-  const cell = (ts, v) => {
+  const kind = hist?.kind || 'week';
+  const hour = (ts) => new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const day = (ts) => new Date(ts * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const tot = (gi) => (hist.agents || []).reduce((n, g) => n + (g.scores[gi] || 0), 0);
+  const max = Math.max(1, ...buckets.map((_, gi) => tot(gi)));
+  const cell = (key, ts, v, lbl) => {
     const lv = v <= 0 ? 0 : Math.min(4, Math.ceil((4 * v) / max));
-    const lbl = bs >= 86400
-      ? new Date(ts * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-      : new Date(ts * 1000).toLocaleString('en-GB');
-    return <i key={ts} className={`cell lv${lv}`} title={`${lbl} · activity ${v}`}></i>;
+    return <i key={key} className={`cell lv${lv}`} title={`${lbl} · activity ${v}`}></i>;
   };
   let grid = <span className="small">No history yet.</span>;
-  if (buckets.length && bs >= 86400 && buckets.length > 7) {
+  if (buckets.length && kind === 'week') {
+    // Team total: 7 day-rows x 24 hour-blocks (1 block = 1 hour).
+    const days = [];
+    for (let d = 0; d < 7; d++) days.push(buckets.slice(d * 24, d * 24 + 24));
+    grid = (
+      <div className="cal7">
+        {days.map((hrs, d) => (
+          <div className="hrow7" key={d}>
+            <span className="hday">{hrs.length ? day(hrs[0]) : ''}</span>
+            <span className="hcells">{hrs.map((ts) => cell(ts, ts, tot(buckets.indexOf(ts)), `${day(ts)} ${hour(ts)}`))}</span>
+          </div>))}
+      </div>
+    );
+  } else if (buckets.length && kind === 'month') {
     const cols = Math.ceil(buckets.length / 7);
     const weeks = [];
     for (let w = 0; w < cols; w++) weeks.push(buckets.slice(w * 7, w * 7 + 7));
@@ -334,8 +376,7 @@ export function Heatmap({ hist }) {
           <div className="wcol" key={w}>
             {wk.map((ts) => {
               const gi = buckets.indexOf(ts);
-              const tot = (hist.agents || []).reduce((n, g) => n + (g.scores[gi] || 0), 0);
-              return cell(ts + ':' + w, tot);
+              return cell(ts + ':' + w, ts, tot(gi), new Date(ts * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }));
             })}
           </div>))}
       </div>
@@ -344,7 +385,7 @@ export function Heatmap({ hist }) {
     grid = (hist.agents || []).map((g) => (
       <div className="hrow" key={g.id}>
         <span className="hname">{g.name}</span>
-        <span className="hcells">{g.scores.map((v, i) => cell(buckets[i] + ':' + g.id, v))}</span>
+        <span className="hcells">{g.scores.map((v, i) => cell(buckets[i] + ':' + g.id, buckets[i], v, hour(buckets[i])))}</span>
       </div>));
   }
   return (
@@ -353,7 +394,9 @@ export function Heatmap({ hist }) {
       <div className="legend small">Less
         {[0, 1, 2, 3, 4].map((l) => <i key={l} className={`cell lv${l}`}></i>)} More</div>
       {buckets.length > 0 && (
-        <div className="small">{fmt(buckets[0])} → {fmt(buckets[buckets.length - 1])}</div>)}
+        <div className="small">
+          {kind === 'day' ? `${hour(buckets[0])} → ${hour(buckets[buckets.length - 1])}, hourly` : kind === 'week' ? 'last 7 days · 1 block = 1 hour' : `${day(buckets[0])} → ${day(buckets[buckets.length - 1])}, 1 block = 1 day`}
+        </div>)}
     </>
   );
 }
@@ -392,8 +435,8 @@ export function StreamPanel({ live, now }) {
             <i className={`ph ${q.status === 'ok' ? 'ph-check-circle ok' : 'ph-x-circle crit'}`}></i>
             <span className="ell"><b className="mono">{q.model}</b>
               <span className="small"> → {q.provider}</span></span>
-            <span className="small mono" title={`${q.in_tok} in / ${q.out_tok} out tokens`}>
-              ↓{q.in_tok} ↑{q.out_tok}</span>
+            <span className="small mono" title={`${big(q.in_tok)} in / ${big(q.out_tok)} out tokens`}>
+              ↓{big(q.in_tok)} ↑{big(q.out_tok)}</span>
             <span className="small" title={q.ts || ''}>
               <i className="ph ph-clock"></i> {rel(q.ts, now)}
             </span>
@@ -407,7 +450,7 @@ export function StreamPanel({ live, now }) {
               <span className="ell"><i className="ph ph-key"></i> <b>{k.key}</b></span>
               <span className="bar" style={{ flex: 1 }}>
                 <i style={{ width: `${Math.round((k.requests / mx) * 100)}%` }}></i></span>
-              <span className="mono" title={`${k.in_tok} in / ${k.out_tok} out tokens`}>{k.requests} req</span>
+              <span className="mono" title={`${big(k.in_tok)} in / ${big(k.out_tok)} out tokens`}>{big(k.requests)} req</span>
             </li>);
         })}
       </ul>
@@ -424,6 +467,32 @@ export function StreamPanel({ live, now }) {
 
 function Kv({ k, v }) {
   return <div className="mrow"><span>{k}</span><span>{v}</span></div>;
+}
+
+function AgentProfile({ a }) {
+  const p = a.profile || {};
+  const skills = p.skills || [];
+  return (<>
+    <h4>Profile</h4>
+    {p.description && <div style={{ marginBottom: 6 }}>{p.description}</div>}
+    <Kv k="Model" v={<span className="mono">{p.model || a.model || 'default'}</span>} />
+    <Kv k="Thinking" v={<span className="mono">{p.thinking_level || '—'}</span>} />
+    <Kv k="Access" v={<span className="mono">{p.permission_mode || '—'}</span>} />
+    {p.service_tier && <Kv k="Tier" v={<span className="mono">{p.service_tier}</span>} />}
+    <Kv k="MCP" v={p.has_mcp ? 'configured (values redacted)' : 'none'} />
+    {(p.custom_args || []).length > 0 &&
+      <Kv k="Args" v={<span className="mono">{p.custom_args.join(' ')}</span>} />}
+    <Kv k="Skills" v={skills.length ? `${skills.filter((s) => s.enabled).length}/${skills.length} enabled` : 'none'} />
+    {skills.length > 0 && (
+      <ul className="rows">{skills.map((s, i) => (
+        <li className="row" key={i}>
+          <i className={`ph ph-puzzle-piece ${s.enabled ? 'ok' : ''}`}></i>
+          <span><b>{s.name}</b></span>
+        </li>))}</ul>)}
+    {p.instructions && (
+      <details><summary className="small"><b>Instructions</b> ({p.instructions.length} chars)</summary>
+        <div className="small" style={{ whiteSpace: 'pre-wrap' }}>{p.instructions}</div></details>)}
+  </>);
 }
 
 // Error text, tidied: [CODE] + headline + wrapped detail (never raw JSON dump).
@@ -511,6 +580,7 @@ export function Modal({ snap, hist, modal, onAgent, onClose }) {
         </div>) : null}
       <Kv k="Last run" v={<span className="mono">{a.last_status}</span>} />
       {a.last_error && <ErrBlock text={a.last_error} />}
+      <AgentProfile a={a} />
       {a.current && (<><h4>Current task</h4>
         <div className="taskline"><i className={`ph ${kindIcon(a.current.kind)}`}></i>
           <b>{a.current.kind_label || a.current.summary}</b>
@@ -545,7 +615,7 @@ export function Modal({ snap, hist, modal, onAgent, onClose }) {
             <div className="small"><b>{w.label}</b> <QuotaSpark hist={hist} provider={c.provider} account={c.account} window={w.label} /></div>
             <div className={`bar ${isNaN(pct) ? '' : pct <= 10 ? 'hot' : pct <= 30 ? 'mid' : ''}`}>
               <i style={{ width: `${isNaN(pct) ? 0 : pct}%` }}></i></div>
-            <div className="small mono">{isNaN(pct) ? '—' : `${pct}% left · used ${w.used}/${w.total}`} · resets {w.reset_in}</div>
+            <div className="small mono">{isNaN(pct) ? '—' : `${pct}% left · used ${big(w.used)}/${big(w.total)}`} · resets {w.reset_in}</div>
           </div>);
       })}
     </>);

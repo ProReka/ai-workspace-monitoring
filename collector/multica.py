@@ -251,6 +251,28 @@ def _live() -> dict:
         if len(did) >= 32 and "-" in did:
             did = str(rt.get("custom_name") or rt.get("name") or did)
         stale = did not in config.KNOWN_DAEMONS
+        # Mini spark 60 menit: 12 bucket x 5 mnt {tasks, tokens} dari tasks terbaru.
+        now_ts = time.time()
+        spark = [[0, 0] for _ in range(12)]
+        for t in tasks:
+            if not isinstance(t, dict):
+                continue
+            ts = _parse_ts(t.get("started_at")) or _parse_ts(t.get("created_at"))
+            if not ts:
+                continue
+            bi = int((now_ts - ts) // 300)
+            if 0 <= bi < 12:
+                tok = 0
+                for u in (t.get("usage") or []):
+                    if isinstance(u, dict):
+                        tok += int(u.get("input_tokens") or 0) + int(u.get("output_tokens") or 0)
+                spark[11 - bi][0] += 1
+                spark[11 - bi][1] += tok
+        skills = []
+        for sk in (a.get("skills") or []):
+            if isinstance(sk, dict):
+                skills.append({"name": str(sk.get("name") or "?"),
+                               "enabled": bool(sk.get("enabled", True))})
         rows.append(
             {
                 "agent_id": aid,
@@ -273,6 +295,19 @@ def _live() -> dict:
                 "stale_runtime": stale,
                 "current": current,
                 "recent": recent,
+                "spark": spark,
+                "spark_ts": int(now_ts),
+                "profile": {
+                    "description": a.get("description") or "",
+                    "instructions": a.get("instructions") or "",
+                    "model": a.get("model"),
+                    "thinking_level": a.get("thinking_level"),
+                    "permission_mode": a.get("permission_mode"),
+                    "service_tier": a.get("service_tier"),
+                    "skills": skills,
+                    "has_mcp": bool(a.get("mcp_config") or a.get("mcp_config_redacted")),
+                    "custom_args": a.get("custom_args") or [],
+                },
             }
         )
         if oldest_waiting and oldest_waiting > config.STUCK_QUEUED_S:

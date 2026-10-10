@@ -462,11 +462,24 @@ def _build_quotas(connections: list[dict],
                                    "msg": f"{provider} ({account}) {label}: {rem_f:.0f}% left — resets {w['reset_in']}"})
         worst = min((w["remaining_pct"] for w in windows if w["remaining_pct"] is not None),
                     default=None)
+        # Primary = window yang sedang ongoing (reset tercepat); tapi window yang
+        # sudah habis (0%) selalu menang agar langsung terlihat.
+        primary = None
+        exhausted = [w for w in windows if (w["remaining_pct"] or 0) <= 0]
+        if exhausted:
+            primary = exhausted[0]["label"]
+        elif windows:
+            def _reset_ts(w: dict) -> float:
+                try:
+                    return datetime.fromisoformat(str(w.get("reset_at")).replace("Z", "+00:00")).timestamp()
+                except (ValueError, TypeError):
+                    return float("inf")
+            primary = min(windows, key=_reset_ts)["label"]
         conns.append({"id": cid, "provider": provider, "account": account,
                       "isActive": active, "testStatus": tstat, "last_error": err[:220],
                       "plan": (usage.get("plan") if isinstance(usage, dict) else None),
                       "windows": windows, "worst_remaining": worst,
-                      "usage_ok": usage is not None})
+                      "primary": primary, "usage_ok": usage is not None})
         if active and usage is None:
             alerts.append({"level": "warn", "source": "9router",
                            "msg": f"{provider} ({account}): usage unreadable (endpoint failed) — quota unknown"})
