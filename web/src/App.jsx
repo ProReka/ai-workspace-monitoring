@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { fetchHistory, fetchLive, fetchSnapshot } from './api.js';
 import { useNow, usePoll, useStored } from './hooks.js';
 import {
-  ComboList, Heatmap, InfraList, Modal, Notifications, QuotaList,
-  RuntimeList, StaleList, StreamPanel, Tiles, Workspace,
+  ComboList, HeatSeg, Heatmap, InfraList, Modal, Notifications, QuotaList,
+  RuntimeList, Section, StaleList, StreamPanel, Tiles, Workspace,
 } from './components.jsx';
 import { Logo } from './parts.jsx';
 import { big, fmtDur } from './fmt.js';
@@ -159,21 +159,18 @@ export default function App() {
           </div>
           {s ? (<>
             <section><Tiles snap={s} /></section>
-            <section>
-              <h2><i className="ph ph-battery-charging"></i> LLM quota</h2>
+            <Section id="quota" icon="ph-battery-charging" title="LLM quota" resizable>
               <QuotaList snap={s} routerUrl={routerUrl} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
-            </section>
-            <section>
-              <h2><i className="ph ph-git-fork"></i> combos</h2>
+            </Section>
+            <Section id="combos" icon="ph-git-fork" title="combos" resizable>
               <ComboList snap={s} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
-            </section>
-            <section>
-              <h2><i className="ph ph-desktop-tower"></i> Runtimes</h2>
+            </Section>
+            <Section id="runtimes" icon="ph-desktop-tower" title="Runtimes" resizable>
               <RuntimeList snap={s} onRuntime={(r) => setModal({ kind: 'runtime', id: r.id || r.daemon_id })} />
               <details><summary className="small">Non-standard ({(s.multica.runtimes_stale || []).length})</summary>
                 <StaleList snap={s} />
               </details>
-            </section>
+            </Section>
             {s.modes.ecs === 'live' && (
               <section>
                 <h2><i className="ph ph-cloud"></i> Infra</h2>
@@ -191,9 +188,17 @@ export default function App() {
             <button title="Hide right panel" onClick={() => setHideR(true)}><i className="ph ph-caret-right"></i></button>
           </div>
           {s ? (<>
-            <section><Notifications snap={s} /></section>
-            <section><StreamPanel live={live.data} now={now} /></section>
-            <section><Heatmap hist={hist} range={range} onRange={setRange} /></section>
+            <Section id="notifs" icon="ph-bell"
+              title={`Notifications (${(s.alerts || []).length + (s.notices || []).length})`} resizable>
+              <Notifications snap={s} />
+            </Section>
+            <Section id="stream" icon="ph-waves" title="Stream" resizable>
+              <StreamPanel live={live.data} now={now} />
+            </Section>
+            <Section id="activity" icon="ph-chart-bar" title="Activity"
+              head={<HeatSeg range={range} onRange={setRange} />}>
+              <Heatmap hist={hist} />
+            </Section>
           </>) : <section><div className="small">Loading…</div></section>}
         </aside>
         <LiveDock live={live.data} routerUrl={routerUrl} />
@@ -204,7 +209,7 @@ export default function App() {
       <button id="edgeR" className={`edge${hideR ? '' : ' hidden'}`} title="Show right panel" onClick={() => setHideR(false)}>
         <i className="ph ph-caret-left"></i>
       </button>
-      {modal && s && <Modal snap={snap.data} modal={modal} onAgent={openAgent} onClose={() => setModal(null)} />}
+      {modal && s && <Modal snap={snap.data} hist={hist} modal={modal} onAgent={openAgent} onClose={() => setModal(null)} />}
     </>
   );
 }

@@ -71,7 +71,6 @@ def history(kind: str = "week") -> dict:
         """SELECT agent_id, agent_name, (ts/?)*? AS b, SUM(running*3+pending)
            FROM agent_hist WHERE ts >= ? GROUP BY agent_id, b ORDER BY agent_id, b""",
         (bucket, bucket, start)).fetchall()
-    con.close()
     agents: dict[str, dict] = {}
     for aid, name, b, score in rows:
         a = agents.setdefault(aid, {"name": name, "cells": {}})
@@ -82,7 +81,19 @@ def history(kind: str = "week") -> dict:
     for aid, a in agents.items():
         out.append({"id": aid, "name": a["name"],
                     "scores": [a["cells"].get(b, 0) for b in buckets]})
-    return {"agents": out, "buckets": buckets, "bucket_s": bucket, "kind": kind}
+    quotas: dict[str, dict] = {}
+    for prov, acc, win, ts, rem in con.execute(
+            """SELECT provider, account, window, ts, remaining FROM quota_hist
+               WHERE ts >= ? ORDER BY provider, account, window, ts""",
+            (now - 24 * 3600,)):
+        q = quotas.setdefault(f"{prov}│{acc}│{win}",
+                              {"label": f"{prov} · {acc} · {win}", "points": []})
+        q["points"].append([ts, rem])
+    for q in quotas.values():
+        q["points"] = q["points"][-60:]
+    con.close()
+    return {"agents": out, "buckets": buckets, "bucket_s": bucket, "kind": kind,
+            "quotas": list(quotas.values())}
 
 
 def history_points(n: int = 60) -> dict:

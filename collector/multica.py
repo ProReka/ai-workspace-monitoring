@@ -240,6 +240,8 @@ def _live() -> dict:
                 "kind": str(t.get("kind") or ""),
                 "kind_label": _kind_label(str(t.get("kind") or "")),
                 "elapsed_s": round((end or time.time()) - start, 0) if start else None,
+                "started_at": t.get("started_at") or t.get("created_at"),
+                "ended_at": t.get("completed_at"),
                 "error": str(t.get("error") or "").split("\n")[0].strip()[:160],
             })
         rid = a.get("runtime_id")

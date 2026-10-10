@@ -2,6 +2,47 @@ import { useEffect, useRef } from 'react';
 import { agoShort, big, fmtDur, kindIcon, short, statusOf, timeHM, fullDT } from './fmt.js';
 import { Avatar, IssueRef, Logo, Mentions } from './parts.jsx';
 
+// Panel section with optional drag-to-resize body (persisted; dbl-click resets to auto).
+export function Section({ id, icon, title, head, resizable, children }) {
+  const key = 'ov-sec-' + id;
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    let h = 0;
+    try { h = parseInt(localStorage.getItem(key) || '0', 10) || 0; } catch {}
+    if (h > 0 && bodyRef.current) {
+      bodyRef.current.style.height = Math.min(window.innerHeight * 0.8, Math.max(80, h)) + 'px';
+      bodyRef.current.style.overflowY = 'auto';
+    }
+  }, [key]);
+  const onDown = (e) => {
+    e.preventDefault();
+    const body = bodyRef.current;
+    const y0 = e.clientY, h0 = body.getBoundingClientRect().height;
+    body.style.overflowY = 'auto';
+    const move = (ev) => {
+      body.style.height = Math.min(window.innerHeight * 0.8, Math.max(80, h0 + (y0 - ev.clientY))) + 'px';
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      try { localStorage.setItem(key, String(Math.round(body.getBoundingClientRect().height))); } catch {}
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+  const onDbl = () => {
+    if (bodyRef.current) { bodyRef.current.style.height = ''; bodyRef.current.style.overflowY = ''; }
+    try { localStorage.removeItem(key); } catch {}
+  };
+  return (
+    <section>
+      <h2><i className={`ph ${icon}`}></i> {title}{head}</h2>
+      <div ref={bodyRef}>{children}</div>
+      {resizable && <div className="secgrip" title="Drag to resize (double-click resets)" onMouseDown={onDown} onDoubleClick={onDbl}><i></i></div>}
+    </section>
+  );
+}
+
 function rel(ts, now) {
   if (!ts) return '—';
   const s = Math.max(0, now / 1000 - new Date(ts).getTime() / 1000);
@@ -47,9 +88,7 @@ const NOTIF_ICON = { crit: 'ph-octagon', warn: 'ph-warning', info: 'ph-info' };
 export function Notifications({ snap }) {
   const items = [...(snap.alerts || []), ...(snap.notices || []).map((n) => ({ ...n, ts: n.ts || snap.ts }))];
   return (
-    <>
-      <h2><i className="ph ph-bell"></i> Notifications (<span>{items.length}</span>)</h2>
-      <div className="alerts">
+    <div className="alerts" data-count={items.length}>
         {items.length ? items.map((a, i) => (
           <div className={`alert ${a.level}`} key={i}>
             <i className={`ph ${NOTIF_ICON[a.level] || 'ph-dot'}`}></i>
@@ -59,8 +98,7 @@ export function Notifications({ snap }) {
             </span>
           </div>
         )) : <div className="small"><i className="ph ph-check-circle"></i> All clear.</div>}
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -262,7 +300,16 @@ export function InfraList({ snap, onEcs }) {
   );
 }
 
-export function Heatmap({ hist, range, onRange }) {
+export function HeatSeg({ range, onRange }) {
+  return (
+    <span className="seg">
+      {['day', 'week', 'month'].map((r) => (
+        <button key={r} data-r={r} className={range === r ? 'on' : ''}
+          onClick={() => onRange(r)}>{r[0].toUpperCase() + r.slice(1)}</button>))}
+    </span>
+  );
+}
+export function Heatmap({ hist }) {
   const buckets = hist?.buckets || [];
   const bs = hist?.bucket_s || 86400;
   const fmt = (ts) => bs >= 86400
@@ -302,13 +349,6 @@ export function Heatmap({ hist, range, onRange }) {
   }
   return (
     <>
-      <h2><i className="ph ph-chart-bar"></i> Activity
-        <span className="seg">
-          {['day', 'week', 'month'].map((r) => (
-            <button key={r} data-r={r} className={range === r ? 'on' : ''}
-              onClick={() => onRange(r)}>{r[0].toUpperCase() + r.slice(1)}</button>))}
-        </span>
-      </h2>
       <div>{grid}</div>
       <div className="legend small">Less
         {[0, 1, 2, 3, 4].map((l) => <i key={l} className={`cell lv${l}`}></i>)} More</div>
@@ -333,8 +373,6 @@ export function StreamPanel({ live, now }) {
   const act = live.active || [];
   return (
     <>
-      <h2><i className="ph ph-waves"></i> Stream
-        <span className="small">{live.ok ? `live · ${Math.round(live.age_s || 0)}s old` : 'unavailable'}</span></h2>
       <div>
         {!live.ok ? null : act.length ? (
           <ul className="rows">
@@ -346,7 +384,7 @@ export function StreamPanel({ live, now }) {
                 <span className="small mono">in flight{a.count > 1 ? ' ×' + a.count : ''}</span>
               </li>))}
           </ul>
-        ) : <div className="small">No in-flight requests.</div>}
+        ) : null}
       </div>
       <ul className="rows" style={{ marginTop: 6 }}>
         {(live.recent || []).map((q, i) => (
@@ -388,7 +426,56 @@ function Kv({ k, v }) {
   return <div className="mrow"><span>{k}</span><span>{v}</span></div>;
 }
 
-export function Modal({ snap, modal, onAgent, onClose }) {
+// Error text, tidied: [CODE] + headline + wrapped detail (never raw JSON dump).
+export function ErrBlock({ text }) {
+  const s = String(text || '');
+  if (!s) return null;
+  const code = (s.match(/\[(\d{3})\]/) || [])[1] || '';
+  let msg = '';
+  const jm = s.match(/\{[\s\S]*\}/);
+  if (jm) {
+    try {
+      const j = JSON.parse(jm[0].replace(/\n/g, ''));
+      const e = j.error || j;
+      msg = String(e.message || e.text || '');
+    } catch { msg = ''; }
+  }
+  const head = s.split('\n')[0].replace(/\{[\s\S]*$/, '').trim();
+  return (
+    <div className="errbox">
+      <div className="errhead">
+        <i className="ph ph-warning"></i>
+        {code && <span className="pill crit">{code}</span>}
+        <b>{short(msg || head, 110)}</b>
+      </div>
+      {msg && head && msg !== head && <div className="small mono">{short(head, 160)}</div>}
+      <details><summary className="small">full error</summary>
+        <div className="mono small">{s.slice(0, 800)}</div></details>
+    </div>
+  );
+}
+
+export function QuotaSpark({ hist, provider, account, window }) {
+  const q = (hist?.quotas || []).find((x) =>
+    x.label === `${provider} · ${account} · ${window}`);
+  const pts = q?.points || [];
+  if (pts.length < 2) return null;
+  const w = 120, h = 26;
+  const vals = pts.map((p) => p[1]);
+  const max = Math.max(...vals, 1);
+  const step = w / Math.max(1, vals.length - 1);
+  const d = vals.map((v, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`).join(' ');
+  const first = vals[0], last = vals[vals.length - 1];
+  const trend = last < first ? 'down' : last > first ? 'up' : 'flat';
+  return (
+    <span className="sparkline" title={`quota trend 24h: ${first}% → ${last}%`}>
+      <svg width={w} height={h}><path d={d} fill="none" stroke="var(--accent)" strokeWidth="1.5" /></svg>
+      <span className="small">{trend === 'down' ? <i className="ph ph-trend-down crit"></i> : trend === 'up' ? <i className="ph ph-trend-up ok"></i> : <i className="ph ph-minus small"></i>}</span>
+    </span>
+  );
+}
+
+export function Modal({ snap, hist, modal, onAgent, onClose }) {
   const closeRef = useRef(null);
   const opener = useRef(document.activeElement);
   useEffect(() => {
@@ -414,22 +501,32 @@ export function Modal({ snap, modal, onAgent, onClose }) {
       <Kv k="Runtime" v={<><i className={`ph ${a.runtime_online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i> {a.runtime_name || a.daemon_id} <span className="small mono">{a.daemon_id} · {a.runtime_online ? 'ON' : 'OFF'}</span></>} />
       <Kv k="Provider" v={<>{a.runtime_provider || '—'}</>} />
       <Kv k="Model" v={<span className="mono">{a.model || 'default'}</span>} />
-      <Kv k="Load" v={<span className="mono">q{a.queued} · d{a.dispatched} · r{a.running} · concurrency {a.concurrency ?? '?'}</span>} />
+      <Kv k="Load" v={<span className="mono">q{a.queued} · d{a.dispatched} · r{a.running}</span>} />
+      {a.concurrency ? (
+        <div className="slots" title={`${a.running || 0}/${a.concurrency} concurrency slots used`}>
+          <span className="bar" style={{ flex: 1 }}>
+            <i style={{ width: `${Math.min(100, Math.round(((a.running || 0) / a.concurrency) * 100))}%` }}></i>
+          </span>
+          <span className="small mono">{a.running || 0}/{a.concurrency} slots</span>
+        </div>) : null}
       <Kv k="Last run" v={<span className="mono">{a.last_status}</span>} />
-      {a.last_error && <div className="mono crit" style={{ margin: '6px 0' }}>{a.last_error}</div>}
+      {a.last_error && <ErrBlock text={a.last_error} />}
       {a.current && (<><h4>Current task</h4>
         <div className="taskline"><i className={`ph ${kindIcon(a.current.kind)}`}></i>
           <b>{a.current.kind_label || a.current.summary}</b>
           <div className="small"><Mentions text={a.current.summary} onAgent={(x) => onAgent(x)} /></div></div></>)}
       <h4>Recent tasks</h4>
-      <ul className="rows">{(a.recent || []).map((t, i) => (
-        <li className="row" key={i}>
-          <i className={`ph ${t.status === 'failed' ? 'ph-x-circle crit' : t.status === 'completed' ? 'ph-check-circle ok' : 'ph-circle warn'}`}></i>
-          <span><b>{t.kind_label || t.kind}</b>
-            <span className="small"> <Mentions text={t.summary} onAgent={(x) => onAgent(x)} />{t.issue ? ' · ' + short(t.issue, 14) : ''}</span>
-            {t.error && <div className="mono crit small">{t.error}</div>}</span>
-          <span className="small mono">{t.status}{t.elapsed_s != null ? ' · ' + fmtDur(t.elapsed_s) : ''}</span>
-        </li>))}</ul>
+      <div className="timeline">{(a.recent || []).map((t, i) => (
+        <div className={`tl-item st-${t.status === 'failed' ? 'bad' : t.status === 'completed' ? 'ok' : 'run'}`} key={i}>
+          <span className="tl-dot"></span>
+          <div className="tl-body">
+            <div className="tl-head"><b>{t.kind_label || t.kind}</b>
+              <span className="small mono">{t.started_at ? fullDT(t.started_at) : ''}{t.ended_at && t.status !== 'running' ? ' → ' + fullDT(t.ended_at) : ''}</span></div>
+            <div><Mentions text={t.summary} onAgent={(x) => onAgent(x)} />{t.issue ? ' · ' + short(t.issue, 14) : ''}</div>
+            <div className="small mono">{t.status}{t.elapsed_s != null ? ' · ' + fmtDur(t.elapsed_s) : ''}</div>
+            {t.error && <ErrBlock text={t.error} />}
+          </div>
+        </div>))}</div>
     </>);
   } else if (kind === 'conn') {
     const c = (snap.router.connections || [])[id];
@@ -439,13 +536,13 @@ export function Modal({ snap, modal, onAgent, onClose }) {
       <Kv k="Plan" v={c.plan || '—'} />
       <Kv k="Active" v={c.isActive ? 'yes' : 'no'} />
       <Kv k="Health check" v={c.testStatus || '?'} />
-      {c.last_error && <div className="mono crit" style={{ margin: '6px 0' }}>{c.last_error}</div>}
+      {c.last_error && <ErrBlock text={c.last_error} />}
       <h4>Quota windows</h4>
       {(c.windows || []).map((w) => {
         const pct = parseFloat(w.remaining_pct);
         return (
           <div className="win" key={w.label}>
-            <div className="small"><b>{w.label}</b></div>
+            <div className="small"><b>{w.label}</b> <QuotaSpark hist={hist} provider={c.provider} account={c.account} window={w.label} /></div>
             <div className={`bar ${isNaN(pct) ? '' : pct <= 10 ? 'hot' : pct <= 30 ? 'mid' : ''}`}>
               <i style={{ width: `${isNaN(pct) ? 0 : pct}%` }}></i></div>
             <div className="small mono">{isNaN(pct) ? '—' : `${pct}% left · used ${w.used}/${w.total}`} · resets {w.reset_in}</div>
