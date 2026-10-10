@@ -12,4 +12,6 @@ AWS ECS (boto3/mocked) ────┘         ├─► SQLite data/office.db (
 - Adapters never raise: per-endpoint/per-connection isolation, degrade to empty.
 - History: 1 row per agent + per quota-window per refresh (~60s).
 - Frontend polls `/api/snapshot` 20s, `/api/history` 60s, `/api/live` 10s.
-  Viewport-locked IDE grid; zero build step.
+  React 18 + Vite (`web/`); `npm run build` emits static files into `frontend/`
+  served by FastAPI. Single 1s `useNow()` tick drives clock/elapsed/ago;
+  keyed lists avoid remount flicker. Viewport-locked IDE grid; no page scroll.

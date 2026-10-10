@@ -70,8 +70,8 @@ body.hideL .col.side.left, body.hideR .col.side.right { display: none; }
   border-radius: 0; padding: 0 8px 6px; }
 .dockgrip { height: 8px; cursor: ns-resize; display: flex; align-items: center; justify-content: center;
   margin: 0 -12px; }
-.dockgrip::after { content: ""; width: 56px; height: 3px; border-radius: 0; background: var(--border); }
-.dockgrip:hover::after { background: var(--accent); }
+.dockgrip i { width: 56px; height: 3px; border-radius: 0; background: var(--border); }
+.dockgrip:hover i { background: var(--accent); }
 .dockbody { overflow-y: auto; min-height: 0; }
 .dock.collapsed { height: auto; }
 .col.side { display: flex; flex-direction: column; gap: 0; min-height: 0;
@@ -216,16 +216,13 @@ span.mention { color: var(--text); }
 .extlink { font-size: 12px; color: var(--accent); text-decoration: none; margin-left: 8px; }
 .extlink:hover { text-decoration: underline; }
 .pulsebar { width: 34px; height: 8px; border-radius: 0; flex: none;
-  background: repeating-linear-gradient(115deg, var(--ok) 0 6px, transparent 6px 12px);
+  background: repeating-linear-gradient(115deg, var(--ok), var(--ok) 6px, transparent 6px, transparent 12px);
   background-size: 200% 100%; animation: slideside 1s linear infinite; }
 @keyframes slideside { to { background-position: -17px 0; } }
 .spark { display: flex; gap: 2px; align-items: flex-end; height: 34px; margin-top: 6px;
   padding: 4px 6px; background: var(--panel2); }
 .spark i { flex: 1; background: var(--accent); min-height: 2px; opacity: .85; }
 #streamActive .taskline { margin: 0 0 6px; }
-  background: repeating-linear-gradient(115deg, var(--ok) 0 6px, transparent 6px 12px);
-  background-size: 200% 100%; animation: slideside 1s linear infinite; }
-@keyframes slideside { to { background-position: -17px 0; } }
 .hrow { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
 .hname { width: 150px; flex: none; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hcells { display: flex; gap: 2px; flex-wrap: wrap; }

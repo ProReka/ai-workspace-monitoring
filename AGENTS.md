@@ -9,7 +9,9 @@ Read `docs/architecture.md`, then only the doc file relevant to your task
 - `collector/snapshot.py` — merges adapters + correlate + meta/notices.
 - `collector/multica.py` — Multica CLI wrapper. `collector/nine_router.py` — 9Router session + fetch.
 - `collector/ecs.py` — ECS read-only (mock without AWS creds). `collector/store.py` — SQLite history.
-- `frontend/` — zero-build vanilla: `index.html`, `app.js`, `style.css` + Phosphor CDN.
+- `frontend/` — Vite **build output** (do not edit by hand). Source: `web/src/`
+  (`App.jsx`, `components.jsx`, `parts.jsx`, `fmt.js`, `hooks.js`, `api.js`, `index.css`).
+- Icons: Phosphor via CDN (`<i class="ph ...">`), provider logos from 9Router `/providers/*.png`.
 
 ## Rules
 
@@ -19,12 +21,13 @@ Read `docs/architecture.md`, then only the doc file relevant to your task
 4. **9Router login**: single POST only when cookie missing/expiring/401. Never brute-force (server lockout).
 5. **No fabricated URLs**: Multica deep links unverified — only `https://multica.ai` + internal modals.
 6. **Design tokens**: sharp corners (`--radius: 0`), Phosphor icons, CSS vars for themes. Keep `prefers-reduced-motion`.
-7. **A11y**: clickable = `role=button tabindex=0` + label + Enter/Space; modal focus in/out; `node --check` must pass.
+7. **A11y**: clickable = `role=button tabindex=0` + label + Enter/Space; modal focus in/out; `npm run build` must pass.
 
 ## SOP: verify after every change
 
 ```bash
-./.venv/bin/python -m py_compile collector/*.py && node --check frontend/app.js
+./.venv/bin/python -m py_compile collector/*.py
+npm run build --prefix web   # after any web/src change; aborts on error
 set -a; source .env; set +a; export PATH="/opt/homebrew/bin:$PATH"
 # restart: pkill -f collector.main; nohup ./.venv/bin/python -m collector.main > data/server.log 2>&1 < /dev/null & disown
 curl -s localhost:8080/api/snapshot | python3 -c "import json,sys;s=json.load(sys.stdin);print(s['modes'])"

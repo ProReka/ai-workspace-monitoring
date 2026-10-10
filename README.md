@@ -28,6 +28,9 @@ set -a; source .env; set +a
 ./.venv/bin/python -m collector.main  # buka http://localhost:8080/
 ```
 
+Frontend React (`web/`). Setelah ubah UI: `npm run build --prefix web`
+(atau `cd web && npm install && npm run dev` untuk dev + hot reload).
+
 Yang dibutuhkan di `.env` (tidak pernah di-commit):
 
 | Key | Dari mana |

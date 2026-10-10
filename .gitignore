@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .env
 data/
+web/node_modules/
+web/dist/

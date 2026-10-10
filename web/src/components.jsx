@@ -1,0 +1,526 @@
+import { useEffect, useRef } from 'react';
+import { agoShort, big, fmtDur, kindIcon, short, statusOf, timeHM, fullDT } from './fmt.js';
+import { Avatar, IssueRef, Logo, Mentions } from './parts.jsx';
+
+function rel(ts, now) {
+  if (!ts) return '—';
+  const s = Math.max(0, now / 1000 - new Date(ts).getTime() / 1000);
+  if (s < 60) return Math.floor(s) + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
+}
+
+export function Tiles({ snap }) {
+  const agents = snap.multica.agents || [];
+  const online = agents.filter((a) => a.runtime_online).length;
+  const running = agents.reduce((n, a) => n + (a.running || 0), 0);
+  const queued = agents.reduce((n, a) => n + (a.pending_total || 0), 0);
+  let worst = null;
+  for (const c of snap.router.connections || []) {
+    if (!c.isActive || c.worst_remaining == null) continue;
+    if (!worst || c.worst_remaining < worst.v) worst = { v: c.worst_remaining, p: c.provider };
+  }
+  const combos = snap.router.combos || [];
+  const tiles = [
+    ['ph-robot', `${online}/${agents.length}`, 'agents online'],
+    ['ph-gear-six', running, 'tasks running'],
+    ['ph-hourglass-medium', queued, 'tasks queued'],
+    ['ph-battery-medium', worst ? `${worst.v.toFixed(0)}% ${worst.p}` : '—', 'lowest quota'],
+    ['ph-git-fork', `${combos.filter((c) => c.verdict === 'ok').length} ok · ${combos.filter((c) => c.verdict === 'degraded').length} degraded`, 'combos'],
+    ['ph-bell', (snap.alerts || []).length, 'notifications'],
+  ];
+  return (
+    <div className="tiles">
+      {tiles.map(([i, v, l]) => (
+        <div className="tile" key={l}>
+          <div className="tv">{String(v)}</div>
+          <div className="tl"><i className={`ph ${i}`}></i> {l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const NOTIF_ICON = { crit: 'ph-octagon', warn: 'ph-warning', info: 'ph-info' };
+
+export function Notifications({ snap }) {
+  const items = [...(snap.alerts || []), ...(snap.notices || []).map((n) => ({ ...n, ts: n.ts || snap.ts }))];
+  return (
+    <>
+      <h2><i className="ph ph-bell"></i> Notifications (<span>{items.length}</span>)</h2>
+      <div className="alerts">
+        {items.length ? items.map((a, i) => (
+          <div className={`alert ${a.level}`} key={i}>
+            <i className={`ph ${NOTIF_ICON[a.level] || 'ph-dot'}`}></i>
+            <span>{a.msg}</span>
+            <span className="ts" title={`${a.source} · ${fullDT(a.ts || snap.ts)}`}>
+              <i className="ph ph-clock"></i> {timeHM(a.ts || snap.ts)}
+            </span>
+          </div>
+        )) : <div className="small"><i className="ph ph-check-circle"></i> All clear.</div>}
+      </div>
+    </>
+  );
+}
+
+function TaskLine({ cur, snapTs, now, onAgent }) {
+  if (!cur) return null;
+  const el = cur.elapsed_s != null ? <> · <span>{fmtDur(cur.elapsed_s + (now / 1000 - snapTs))}</span></> : null;
+  return (
+    <div className="taskline">
+      <i className={`ph ${kindIcon(cur.kind)}`}></i> <b>{cur.kind_label || cur.summary}</b>
+      <div className="small clamp1">
+        <Mentions text={cur.summary} onAgent={onAgent} />
+        {cur.issue ? <> · <IssueRef value={cur.issue} /></> : null}{el}
+      </div>
+    </div>
+  );
+}
+
+export function AgentCard({ a, onAgent, now, snapTs }) {
+  const st = statusOf(a);
+  const off = st.group === 'offline';
+  const border = off ? 'st-off' : st.group === 'working' ? 'st-working' : st.cls === 'ok' ? 'st-ok' : 'st-warn';
+  return (
+    <div
+      className={`agent ${border}`} role="button" tabIndex={0}
+      aria-label={`${a.agent_name}, ${st.label}. Activate for details.`}
+      title={`${a.agent_name} — click for details`}
+      onClick={() => onAgent(a.agent_id)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAgent(a.agent_id); } }}
+    >
+      <div className="ahead">
+        <span className="ava"><Avatar value={a.avatar} /></span>
+        <div className="amin"><div className="aname">{a.agent_name}</div></div>
+        <span className={`dot ${st.cls}`}><i className={`ph ${st.icon}`}></i></span>
+      </div>
+      <div className="amiddle">
+        <span className={`rt ${a.runtime_online ? 'on' : ''}`}
+          title={`${a.runtime_name || a.daemon_id} — runtime ${a.runtime_online ? 'ON' : 'OFF'}`}>
+          <i className={`ph ${a.runtime_online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i>
+        </span>
+        <span className="lbl">{st.label}</span>
+        <span className="bdgs">
+          {a.pending_total > 0 && (
+            <span className="bdg warn" title={`${a.pending_total} pending tasks`}>
+              <i className="ph ph-tray"></i>{a.pending_total}
+            </span>)}
+          {a.last_error && (
+            <span className="bdg crit" title="has error — click for details"><i className="ph ph-warning"></i></span>)}
+          {a.stale_runtime && <span className="bdg" title="non-standard runtime">stale</span>}
+        </span>
+      </div>
+      <div className="small mono">
+        q{a.queued}·d{a.dispatched}·r{a.running}
+        {a.oldest_pending_s != null ? ` · pending ${fmtDur(a.oldest_pending_s)}` : ''} · last: {a.last_status}
+      </div>
+      <TaskLine cur={a.current} snapTs={snapTs} now={now} onAgent={onAgent} />
+    </div>
+  );
+}
+
+const RANK = (x) => (!x.runtime_online ? 3 : x.running > 0 ? 0 : (x.pending_total || 0) > 0 ? 1 : 2);
+
+export function Workspace({ snap, onAgent, now }) {
+  const agents = [...(snap.multica.agents || [])].sort((a, b) => RANK(a) - RANK(b));
+  const w = agents.filter((a) => a.running > 0).length;
+  const q = agents.filter((a) => (a.pending_total || 0) > 0 && a.running === 0).length;
+  return (
+    <>
+      <h2><i className="ph ph-grid-four"></i> <span className="small">
+        {agents.length} agents · {w} working · {q} queued</span></h2>
+      <div className="wgrid">
+        {agents.map((a) => (
+          <AgentCard key={a.agent_id} a={a} onAgent={onAgent} now={now} snapTs={snap.ts} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function QuotaList({ snap, routerUrl, onConn }) {
+  const conns = [...(snap.router.connections || [])].sort((x, y) => y.isActive - x.isActive);
+  return (
+    <ul className="rows">
+      {conns.map((c, i) => {
+        if (!c.isActive) {
+          return (
+            <li className="row stale" key={c.id || i}>
+              <span className="ell"><Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
+              <span className="small"> {c.account}</span></span><span className="pill">OFF</span>
+            </li>);
+        }
+        const min = c.worst_remaining;
+        const cls = min == null ? '' : min <= 10 ? 'hot' : min <= 30 ? 'mid' : '';
+        return (
+          <li className="row stack" key={c.id || i} role="button" tabIndex={0}
+            aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
+            onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
+            <span className="ell" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
+              <span className="small">{c.account}</span>
+              <span className="mono" style={{ marginLeft: 'auto' }}>{min == null ? '—' : min.toFixed(0) + '%'}</span>
+              {(c.last_error || '') !== ''
+                ? <i className="ph ph-warning warn" title="has error — click for details"></i>
+                : <i className="ph ph-check-circle ok"></i>}
+              <i className="ph ph-caret-right go"></i>
+            </span>
+            <span className={`bar ${cls}`}><i style={{ width: `${min == null ? 0 : min}%` }}></i></span>
+          </li>);
+      })}
+    </ul>
+  );
+}
+
+const LINK_ICON = {
+  ok: 'ph-check-circle ok', low: 'ph-warning warn', exhausted: 'ph-x-circle crit',
+  error: 'ph-x-circle crit', inactive: 'ph-minus-circle crit', unknown: 'ph-question',
+};
+
+export function ComboList({ snap, onCombo }) {
+  const combos = snap.router.combos || [];
+  const dot = { ok: ['ok', 'ph-check'], degraded: ['warn', 'ph-minus'], down: ['crit', 'ph-x'], unknown: ['mut', 'ph-question'] };
+  return (
+    <ul className="rows">
+      {combos.map((c) => {
+        const v = c.verdict || 'unknown';
+        const [dc, di] = dot[v] || dot.unknown;
+        return (
+          <li className="row" key={c.name} role="button" tabIndex={0}
+            aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
+            onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
+            <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
+            <span className="mono ell"><b>{c.name}</b></span>
+            <span className="graph">
+              {(c.chain || []).map((l, j) => (
+                <span key={j}>
+                  {j ? <i className="ph ph-arrow-right small"></i> : null}
+                  <i className={`ph ${LINK_ICON[l.status] || 'ph-question'}`}
+                    title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>
+                </span>))}
+            </span>
+            <i className="ph ph-caret-right go"></i>
+          </li>);
+      })}
+    </ul>
+  );
+}
+
+export function RuntimeList({ snap, onRuntime }) {
+  const known = snap.multica.runtimes_known || [];
+  const agents = snap.multica.agents || [];
+  return (
+    <ul className="rows">
+      {known.map((r) => {
+        const n = agents.filter((a) => a.runtime_id === r.id).length;
+        return (
+          <li className="row" key={r.id || r.daemon_id} role="button" tabIndex={0}
+            aria-label={`Runtime ${r.name || r.daemon_id}. Activate for details.`}
+            onClick={() => onRuntime(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRuntime(r); } }}>
+            <span className={`dot ${r.online ? 'ok' : 'muted'}`}>
+              <i className={`ph ${r.online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i>
+            </span>
+            <span className="ell"><b>{r.name || r.daemon_id}</b>
+              <span className="small"> {r.daemon_id} · {n} agent{n === 1 ? '' : 's'}</span></span>
+            <span className={`pill ${r.online ? 'ok' : ''}`}>{r.online ? 'ON' : 'OFF'}</span>
+            <i className="ph ph-caret-right go"></i>
+          </li>);
+      })}
+    </ul>
+  );
+}
+
+export function StaleList({ snap }) {
+  const stale = snap.multica.runtimes_stale || [];
+  return (
+    <ul className="rows">
+      {stale.map((r, i) => (
+        <li className="row stale mini" key={r.id || i}>
+          <span className="mono ell">{r.daemon_id}</span>
+          <span className="small" style={{ marginLeft: 'auto' }}>{r.online ? 'online' : 'offline'} · {r.last_seen || '—'}</span>
+        </li>))}
+    </ul>
+  );
+}
+
+export function InfraList({ snap, onEcs }) {
+  return (
+    <ul className="rows">
+      {(snap.ecs.services || []).map((v, i) => (
+        <li className="row" key={v.service} role="button" tabIndex={0}
+          aria-label={`ECS service ${v.service}. Activate for details.`}
+          onClick={() => onEcs(v)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEcs(v); } }}>
+          <span className="mono ell">{short(v.service, 26)}</span>
+          <span className="mono">des {v.desired} · run {v.running}</span>
+          {(v.pending || 0) > 0
+            ? <span className="bdg warn">{v.pending}</span>
+            : <i className="ph ph-check-circle ok"></i>}
+          <i className="ph ph-caret-right go"></i>
+        </li>))}
+    </ul>
+  );
+}
+
+export function Heatmap({ hist, range, onRange }) {
+  const buckets = hist?.buckets || [];
+  const bs = hist?.bucket_s || 86400;
+  const fmt = (ts) => bs >= 86400
+    ? new Date(ts * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const max = Math.max(1, ...(hist?.agents || []).flatMap((g) => g.scores));
+  const cell = (ts, v) => {
+    const lv = v <= 0 ? 0 : Math.min(4, Math.ceil((4 * v) / max));
+    const lbl = bs >= 86400
+      ? new Date(ts * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      : new Date(ts * 1000).toLocaleString('en-GB');
+    return <i key={ts} className={`cell lv${lv}`} title={`${lbl} · activity ${v}`}></i>;
+  };
+  let grid = <span className="small">No history yet.</span>;
+  if (buckets.length && bs >= 86400 && buckets.length > 7) {
+    const cols = Math.ceil(buckets.length / 7);
+    const weeks = [];
+    for (let w = 0; w < cols; w++) weeks.push(buckets.slice(w * 7, w * 7 + 7));
+    grid = (
+      <div className="cal">
+        {weeks.map((wk, w) => (
+          <div className="wcol" key={w}>
+            {wk.map((ts) => {
+              const gi = buckets.indexOf(ts);
+              const tot = (hist.agents || []).reduce((n, g) => n + (g.scores[gi] || 0), 0);
+              return cell(ts + ':' + w, tot);
+            })}
+          </div>))}
+      </div>
+    );
+  } else if (buckets.length) {
+    grid = (hist.agents || []).map((g) => (
+      <div className="hrow" key={g.id}>
+        <span className="hname">{g.name}</span>
+        <span className="hcells">{g.scores.map((v, i) => cell(buckets[i] + ':' + g.id, v))}</span>
+      </div>));
+  }
+  return (
+    <>
+      <h2><i className="ph ph-chart-bar"></i> Activity
+        <span className="seg">
+          {['day', 'week', 'month'].map((r) => (
+            <button key={r} data-r={r} className={range === r ? 'on' : ''}
+              onClick={() => onRange(r)}>{r[0].toUpperCase() + r.slice(1)}</button>))}
+        </span>
+      </h2>
+      <div>{grid}</div>
+      <div className="legend small">Less
+        {[0, 1, 2, 3, 4].map((l) => <i key={l} className={`cell lv${l}`}></i>)} More</div>
+      {buckets.length > 0 && (
+        <div className="small">{fmt(buckets[0])} → {fmt(buckets[buckets.length - 1])}</div>)}
+    </>
+  );
+}
+
+export function StreamPanel({ live, now }) {
+  const seen = useRef(new Set());
+  if (!live) return <div className="small">Waiting for stream…</div>;
+  const mark = (k) => {
+    const fresh = !seen.current.has(k);
+    seen.current.add(k);
+    if (seen.current.size > 400) {
+      const it = seen.current.values();
+      for (let i = 0; i < 100; i++) seen.current.delete(it.next().value);
+    }
+    return fresh ? ' fresh' : '';
+  };
+  const act = live.active || [];
+  return (
+    <>
+      <h2><i className="ph ph-waves"></i> Stream
+        <span className="small">{live.ok ? `live · ${Math.round(live.age_s || 0)}s old` : 'unavailable'}</span></h2>
+      <div>
+        {!live.ok ? null : act.length ? (
+          <ul className="rows">
+            {act.map((a, i) => (
+              <li className={`row${mark('a:' + a.model + '|' + a.provider + '|' + a.account)}`} key={i}>
+                <span className="pulse-ic"><i className="ph ph-gear-six"></i></span>
+                <span className="ell"><b className="mono">{a.model}</b>
+                  <span className="small"> → {a.provider}{a.account ? ' · ' + a.account : ''}</span></span>
+                <span className="small mono">in flight{a.count > 1 ? ' ×' + a.count : ''}</span>
+              </li>))}
+          </ul>
+        ) : <div className="small">No in-flight requests.</div>}
+      </div>
+      <ul className="rows" style={{ marginTop: 6 }}>
+        {(live.recent || []).map((q, i) => (
+          <li className={`row${mark('r:' + q.ts + '|' + q.model + '|' + q.in_tok)}`} key={i}>
+            <i className={`ph ${q.status === 'ok' ? 'ph-check-circle ok' : 'ph-x-circle crit'}`}></i>
+            <span className="ell"><b className="mono">{q.model}</b>
+              <span className="small"> → {q.provider}</span></span>
+            <span className="small mono" title={`${q.in_tok} in / ${q.out_tok} out tokens`}>
+              ↓{q.in_tok} ↑{q.out_tok}</span>
+            <span className="small" title={q.ts || ''}>
+              <i className="ph ph-clock"></i> {rel(q.ts, now)}
+            </span>
+          </li>))}
+      </ul>
+      <ul className="rows" style={{ marginTop: 6 }}>
+        {(live.by_key || []).map((k) => {
+          const mx = Math.max(1, ...(live.by_key || []).map((x) => x.requests));
+          return (
+            <li className="row" key={k.key}>
+              <span className="ell"><i className="ph ph-key"></i> <b>{k.key}</b></span>
+              <span className="bar" style={{ flex: 1 }}>
+                <i style={{ width: `${Math.round((k.requests / mx) * 100)}%` }}></i></span>
+              <span className="mono" title={`${k.in_tok} in / ${k.out_tok} out tokens`}>{k.requests} req</span>
+            </li>);
+        })}
+      </ul>
+      {(live.per_min || []).length > 0 && (
+        <div className="spark" title="requests per minute, last 10 minutes">
+          {live.per_min.map((v, i) => {
+            const mx = Math.max(1, ...live.per_min);
+            return <i key={i} style={{ height: `${Math.max(8, Math.round((v / mx) * 100))}%` }}></i>;
+          })}
+        </div>)}
+    </>
+  );
+}
+
+function Kv({ k, v }) {
+  return <div className="mrow"><span>{k}</span><span>{v}</span></div>;
+}
+
+export function Modal({ snap, modal, onAgent, onClose }) {
+  const closeRef = useRef(null);
+  const opener = useRef(document.activeElement);
+  useEffect(() => {
+    closeRef.current && closeRef.current.focus();
+    return () => { if (opener.current instanceof HTMLElement) opener.current.focus(); };
+  }, []);
+  if (!modal) return null;
+  const { kind, id } = modal;
+  let body = null;
+  if (kind === 'agent') {
+    const a = (snap.multica.agents || []).find((x) => x.agent_id === id);
+    if (!a) return null;
+    const st = statusOf(a);
+    body = (<>
+      <h3><span className="ava"><Avatar value={a.avatar} /></span> {a.agent_name}</h3>
+      <div style={{ marginBottom: 8 }}>
+        <span className={`pill ${st.cls}`}>{st.label}</span>
+        {a.stale_runtime && ' '}
+        {a.stale_runtime && <span className="pill">non-standard runtime</span>}
+        <a className="extlink" href="https://multica.ai" target="_blank" rel="noopener" title="Open Multica web">
+          Open in Multica <i className="ph ph-arrow-square-out"></i></a>
+      </div>
+      <Kv k="Runtime" v={<><i className={`ph ${a.runtime_online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i> {a.runtime_name || a.daemon_id} <span className="small mono">{a.daemon_id} · {a.runtime_online ? 'ON' : 'OFF'}</span></>} />
+      <Kv k="Provider" v={<>{a.runtime_provider || '—'}</>} />
+      <Kv k="Model" v={<span className="mono">{a.model || 'default'}</span>} />
+      <Kv k="Load" v={<span className="mono">q{a.queued} · d{a.dispatched} · r{a.running} · concurrency {a.concurrency ?? '?'}</span>} />
+      <Kv k="Last run" v={<span className="mono">{a.last_status}</span>} />
+      {a.last_error && <div className="mono crit" style={{ margin: '6px 0' }}>{a.last_error}</div>}
+      {a.current && (<><h4>Current task</h4>
+        <div className="taskline"><i className={`ph ${kindIcon(a.current.kind)}`}></i>
+          <b>{a.current.kind_label || a.current.summary}</b>
+          <div className="small"><Mentions text={a.current.summary} onAgent={(x) => onAgent(x)} /></div></div></>)}
+      <h4>Recent tasks</h4>
+      <ul className="rows">{(a.recent || []).map((t, i) => (
+        <li className="row" key={i}>
+          <i className={`ph ${t.status === 'failed' ? 'ph-x-circle crit' : t.status === 'completed' ? 'ph-check-circle ok' : 'ph-circle warn'}`}></i>
+          <span><b>{t.kind_label || t.kind}</b>
+            <span className="small"> <Mentions text={t.summary} onAgent={(x) => onAgent(x)} />{t.issue ? ' · ' + short(t.issue, 14) : ''}</span>
+            {t.error && <div className="mono crit small">{t.error}</div>}</span>
+          <span className="small mono">{t.status}{t.elapsed_s != null ? ' · ' + fmtDur(t.elapsed_s) : ''}</span>
+        </li>))}</ul>
+    </>);
+  } else if (kind === 'conn') {
+    const c = (snap.router.connections || [])[id];
+    if (!c) return null;
+    body = (<>
+      <h3>{c.provider} <span className="small">{c.account}</span></h3>
+      <Kv k="Plan" v={c.plan || '—'} />
+      <Kv k="Active" v={c.isActive ? 'yes' : 'no'} />
+      <Kv k="Health check" v={c.testStatus || '?'} />
+      {c.last_error && <div className="mono crit" style={{ margin: '6px 0' }}>{c.last_error}</div>}
+      <h4>Quota windows</h4>
+      {(c.windows || []).map((w) => {
+        const pct = parseFloat(w.remaining_pct);
+        return (
+          <div className="win" key={w.label}>
+            <div className="small"><b>{w.label}</b></div>
+            <div className={`bar ${isNaN(pct) ? '' : pct <= 10 ? 'hot' : pct <= 30 ? 'mid' : ''}`}>
+              <i style={{ width: `${isNaN(pct) ? 0 : pct}%` }}></i></div>
+            <div className="small mono">{isNaN(pct) ? '—' : `${pct}% left · used ${w.used}/${w.total}`} · resets {w.reset_in}</div>
+          </div>);
+      })}
+    </>);
+  } else if (kind === 'combo') {
+    const c = (snap.router.combos || [])[id];
+    if (!c) return null;
+    body = (<>
+      <h3><i className="ph ph-git-fork"></i> {c.name} <span className="pill">{(c.verdict || '').toUpperCase()}</span></h3>
+      <ul className="rows">{(c.chain || []).map((l, i) => (
+        <span key={i} style={{ display: 'contents' }}>
+          {i ? <div className="chain-arrow"><i className="ph ph-arrow-down"></i> fallback</div> : null}
+          <li className="row"><span className="mono"><b>{l.link}</b></span>
+            <span className="small">{l.detail || ''}</span><span className="pill">{l.status}</span></li>
+        </span>))}
+      </ul>
+    </>);
+  } else if (kind === 'ecs') {
+    const v = (snap.ecs.services || [])[id];
+    if (!v) return null;
+    body = (<>
+      <h3><i className="ph ph-cloud"></i> <span className="mono">{v.service}</span></h3>
+      <Kv k="Source" v={'ECS ' + snap.modes.ecs} />
+      <Kv k="Desired" v={v.desired} />
+      <Kv k="Running" v={v.running} />
+      <Kv k="Pending" v={v.pending ?? 0} />
+    </>);
+  } else if (kind === 'runtime') {
+    const r = [...(snap.multica.runtimes_known || []), ...(snap.multica.runtimes_stale || [])].find((x) => (x.id || x.daemon_id) === id);
+    if (!r) return null;
+    const bound = (snap.multica.agents || []).filter((a) => a.runtime_id === r.id);
+    body = (<>
+      <h3><i className={`ph ${r.online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i> {r.name || r.daemon_id}</h3>
+      <div style={{ marginBottom: 8 }}>
+        <span className={`pill ${r.online ? 'ok' : ''}`}>{r.online ? 'ONLINE' : 'OFFLINE'}</span></div>
+      <Kv k="Daemon" v={<span className="mono">{r.daemon_id}</span>} />
+      <Kv k="Provider" v={r.provider || '—'} />
+      <Kv k="Last seen" v={<span className="mono">{r.last_seen || '—'}</span>} />
+      <h4>Bound agents ({bound.length})</h4>
+      <ul className="rows">{bound.map((a) => (
+        <li className="row" key={a.agent_id} role="button" tabIndex={0}
+          onClick={() => onAgent(a.agent_id)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAgent(a.agent_id); } }}>
+          <span className="ell"><b>{a.agent_name}</b></span>
+          <span className="small mono">q{a.queued}·d{a.dispatched}·r{a.running} · {a.last_status}</span>
+          <i className="ph ph-caret-right go"></i></li>))}</ul>
+    </>);
+  } else if (kind === 'sys') {
+    const m = snap.meta || {};
+    const rows = [['Workspace', `${m.workspace} (${m.workspace_id})`], ['9Router', `${m.router_url} · v${m.router_version}`],
+      ['Multica CLI', 'v' + (m.multica_cli || '?')], ['ECS', `${m.ecs_cluster} · ${m.aws_region} (${snap.modes.ecs})`],
+      ['Refresh', `snapshot every ${m.refresh_s}s + cache · live 10s`],
+      ['Modes', `multica:${snap.modes.multica} · router:${snap.modes.router} · ecs:${snap.modes.ecs}`]];
+    body = (<>
+      <h3><i className="ph ph-info"></i> System info & debug</h3>
+      <ul className="rows">{rows.map(([k, v]) => (
+        <li className="row" key={k}><span className="small">{k}</span><span className="mono">{v}</span></li>))}</ul>
+      <h4>9Router endpoints</h4>
+      <ul className="rows">{Object.entries(snap.router.endpoint_status || {}).map(([k, v]) => (
+        <li className="row" key={k}><span className="mono small">{k}</span>
+          <span className="mono">{v === 200 ? <span className="ok">200</span> : <span className="crit">{String(v)}</span>}</span></li>))}</ul>
+      <h4>Raw</h4>
+      <pre className="mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 180, overflow: 'auto' }}>
+        insights: {JSON.stringify(snap.insights || [])}
+        note router: {snap.router.note || '-'}{snap.ecs.note ? '\nnote ecs: ' + snap.ecs.note : ''}</pre>
+    </>);
+  }
+  return (
+    <div id="modalWrap" onClick={(e) => { if (e.target.id === 'modalWrap') onClose(); }}>
+      <div id="modal" role="dialog" aria-modal="true">
+        <button id="modalX" title="Close" ref={closeRef} onClick={onClose}><i className="ph ph-x"></i></button>
+        <div id="modalBody">{body}</div>
+      </div>
+    </div>
+  );
+}
