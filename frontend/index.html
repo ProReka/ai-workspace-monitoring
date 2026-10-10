@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Command Center — AI Team Ops</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+</head>
+<body>
+<header>
+  <span class="livedot" id="livedot" title="collector alive"></span>
+  <h1><i class="ph ph-buildings"></i> Command Center</h1>
+  <span class="pill ok" id="wspill">…</span>
+  <button id="themeBtn" title="Toggle light / dark mode"><i class="ph ph-moon"></i></button>
+  <span class="modes" id="modes">…</span>
+  <span class="right"><span id="clock">…</span> <span id="clockAge" class="small"></span> · <a href="/api/snapshot" style="color:inherit">JSON</a></span>
+</header>
+<main class="layout">
+  <aside class="col side left" aria-label="Left panel">
+    <div class="sidetool">
+      <button id="hideL" title="Hide left panel"><i class="ph ph-caret-left"></i></button></div>
+    <section>
+      <h2><i class="ph ph-gauge"></i> Overview</h2>
+      <div class="tiles" id="tiles"></div>
+    </section>
+    <section>
+      <h2><i class="ph ph-battery-charging"></i> LLM quota</h2>
+      <ul class="rows" id="quotas"></ul>
+    </section>
+    <section>
+      <h2><i class="ph ph-git-fork"></i> combos</h2>
+      <ul class="rows" id="combos"></ul>
+    </section>
+  </aside>
+  <section class="col center" aria-label="Workspace">
+    <div class="floor">
+    <h2><i class="ph ph-grid-four"></i> <span class="small" id="wsSub"></span></h2>
+    <div id="workspace" class="wgrid"></div>
+    </div>
+  </section>
+  <aside class="col side right" aria-label="Right panel">
+    <div class="sidetool">
+      <button id="hideR" title="Hide right panel"><i class="ph ph-caret-right"></i></button></div>
+    <section>
+      <h2><i class="ph ph-bell"></i> Notifications (<span id="notifCount">0</span>)</h2>
+      <div class="alerts" id="notifs"></div>
+    </section>
+    <section>
+      <h2><i class="ph ph-chart-bar"></i> Activity
+        <span class="seg" id="rangeSeg">
+          <button data-r="day">Day</button><button data-r="week" class="on">Week</button><button data-r="month">Month</button>
+        </span>
+      </h2>
+      <div id="heatmap"></div>
+      <div class="legend small">Less <i class="cell lv0"></i><i class="cell lv1"></i><i class="cell lv2"></i><i class="cell lv3"></i><i class="cell lv4"></i> More</div>
+    </section>
+    <section>
+      <h2><i class="ph ph-activity"></i> Monitoring</h2>
+      <ul class="rows" id="ecs"></ul>
+      <details><summary class="small">Non-standard runtimes (<span id="staleCount">0</span>)</summary>
+        <ul class="rows" id="stale"></ul>
+      </details>
+      <details><summary class="small"><b>System info &amp; debug</b></summary>
+        <ul class="rows" id="sysinfo"></ul>
+        <ul class="rows" id="eps" style="margin-top:6px"></ul>
+        <pre class="mono" id="raw" style="white-space:pre-wrap;max-height:150px;overflow:auto;margin-top:6px"></pre>
+      </details>
+    </section>
+  </aside>
+  <section class="dock" aria-label="Live traffic">
+    <div class="dockgrip" id="dockGrip" title="Drag to resize"></div>
+    <div class="dockhead" role="button" tabindex="0" id="dockHead" aria-expanded="true">
+      <i class="ph ph-pulse"></i> <b>Live LLM traffic</b>
+      <span class="small" id="liveAge"></span>
+      <span class="small mono" id="dockSum"></span>
+      <i class="ph ph-caret-down" id="dockCaret"></i>
+    </div>
+    <div class="dockbody" id="dockBody">
+      <div class="tiles" id="livetotals"></div>
+      <ul class="rows" id="liveprov"></ul>
+      <ul class="rows" id="livemodels"></ul>
+    </div>
+  </section>
+</main>
+<button id="edgeL" class="edge hidden" title="Show left panel"><i class="ph ph-caret-right"></i></button>
+<button id="edgeR" class="edge hidden" title="Show right panel"><i class="ph ph-caret-left"></i></button>
+<div id="modalWrap" class="hidden"><div id="modal" role="dialog" aria-modal="true">
+  <button id="modalX" title="Close"><i class="ph ph-x"></i></button>
+  <div id="modalBody"></div>
+</div></div>
+<script src="app.js"></script>
+</body>
+</html>
