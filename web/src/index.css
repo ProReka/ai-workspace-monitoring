@@ -170,21 +170,29 @@ details summary.small { color: var(--muted); }
 .agent.st-off { border-left-color: var(--muted); }
 .agent.st-working { border-left-color: #e8830c; animation: workbar 1.6s ease-in-out infinite; }
 [data-theme="light"] .agent.st-working { border-left-color: #b25e09; animation-name: workbarL; }
-@keyframes workbar { 0%,100% { border-left-color: #e8830c; } 50% { border-left-color: #f5b04c; } }
-@keyframes workbarL { 0%,100% { border-left-color: #b25e09; } 50% { border-left-color: #e8a33d; } }
+@keyframes workbar { 0%,100% { border-left-color: #e8830c; box-shadow: 0 0 0 rgba(232,131,12,0); } 50% { border-left-color: #f5b04c; box-shadow: 0 0 14px rgba(232,131,12,.45); } }
+@keyframes workbarL { 0%,100% { border-left-color: #b25e09; box-shadow: 0 0 0 rgba(178,94,9,0); } 50% { border-left-color: #e8a33d; box-shadow: 0 0 14px rgba(178,94,9,.4); } }
+.row.liveact { animation: rowglow 1.8s ease-in-out infinite; }
+@keyframes rowglow { 0%,100% { background: transparent; } 50% { background: var(--hover); } }
 .pulse-ic { color: var(--accent); font-size: 14px; flex: none; }
 .pulse-ic .ph { animation: spin 2.4s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .row.fresh { animation: fadein .4s ease; }
 @keyframes fadein { from { background: var(--hover); } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) {
-  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar, .pulse-ic .ph, .row.fresh { animation: none; }
+  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar, .pulse-ic .ph, .row.fresh, .row.liveact { animation: none; }
 }
 .alert > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .agent .ahead { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 3px; }
 .agent .ahead .pill { margin-left: auto; flex: none; }
 .agent .aname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.agent .taskline, .taskline { margin-top: 6px; font-size: 12px; }
+.agent .sline { display: flex; gap: 4px; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+.agent .sline.ok { color: var(--ok); } .agent .sline.warn { color: var(--warn); }
+.agent .sline.muted { color: var(--muted); } .agent .sline.working { color: #e8830c; }
+[data-theme="light"] .agent .sline.working { color: #b25e09; }
+.agent .taskline, .taskline { margin-top: 5px; font-size: 11px; background: var(--panel);
+  border: 1px solid var(--border); padding: 3px 5px; }
+.agent .taskline b, .taskline b { font-size: 11px; }
 .agent .taskline { flex: 1; }
 .clamp1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* recessed map floor: thin small grid, lower elevation than the panels */
@@ -269,6 +277,8 @@ ul.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .row[data-conn]:focus-visible .go, .row[data-combo]:focus-visible .go, .row[data-ecs]:focus-visible .go { opacity: 1; }
 .row .go { opacity: 0; margin-left: auto; color: var(--muted); font-size: 14px; flex: none; transition: opacity .12s; }
 .row > span:first-child { min-width: 0; overflow: hidden; }
+.row.frow { min-height: 30px; }
+.activehold { min-height: 30px; }
 .row .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .row .bar { flex: 1; }
 .alert > span:nth-child(2) { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2;
@@ -304,8 +314,11 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .agent .ld.warn { color: var(--warn); }
 .agent .amin { flex: 1; min-width: 0; }
 .agent .ava { width: 34px; height: 34px; }
-.minispark { display: flex; gap: 2px; margin-top: 5px; }
-.minispark .cell { width: auto; height: 9px; flex: 1; }
+.minispark { display: flex; gap: 2px; margin-top: 5px; align-items: flex-end; height: 14px; }
+.minispark .cell { width: auto; flex: 1; min-width: 0; border-radius: 0; height: 3px; opacity: .55; }
+.minispark .cell.lv1 { height: 5px; opacity: .8; }
+.minispark .cell.lv2 { height: 8px; opacity: .9; }
+.minispark .cell.lv3, .minispark .cell.lv4 { height: 12px; opacity: 1; }
 .agent .rt.on { color: var(--ok); } .agent .rt { color: var(--muted); }
 .agent .bdgs { margin-left: auto; }
 #modalWrap { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50;

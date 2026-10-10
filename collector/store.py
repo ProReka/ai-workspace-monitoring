@@ -10,7 +10,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB = DATA_DIR / "office.db"
-RETENTION_S = 7 * 24 * 3600
+RETENTION_S = 95 * 24 * 3600
 POINTS = 60  # jumlah titik heatmap
 
 
@@ -56,10 +56,10 @@ def write_snapshot(s: dict) -> None:
 def history(kind: str = "week") -> dict:
     """GitHub-style activity: agents x time buckets.
 
-    kind: day (24 hourly buckets) | week (168 hourly) | month (30 daily).
+    kind: day (24 hourly buckets) | week (168 hourly) | month (90 daily).
     Score per sample = running*3 + pending, summed per bucket.
     """
-    spec = {"day": (24, 3600), "week": (168, 3600), "month": (30, 86400)}
+    spec = {"day": (24, 3600), "week": (168, 3600), "month": (90, 86400)}
     n, bucket = spec.get(kind, spec["week"])
     now = int(time.time())
     start = now - n * bucket

@@ -158,7 +158,7 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
         <span className="ava"><Avatar value={a.avatar} /></span>
         <div className="amin">
           <div className="aname">{a.agent_name}</div>
-          <div><span className={`pill ${st.cls}`}>{st.label}</span></div>
+          <div className={`sline ${st.cls}`}><i className={`ph ${st.icon}`}></i>{st.label}</div>
         </div>
         <span className={`dot ${st.cls}`}><i className={`ph ${st.icon}`}></i></span>
       </div>
@@ -236,6 +236,10 @@ export function QuotaList({ snap, routerUrl, onConn }) {
               <i className="ph ph-caret-right go"></i>
             </span>
             <span className={`bar ${cls}`}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
+            {wins.filter((w) => w.label !== c.primary).map((w) => (
+              <span className="small mono" key={w.label}>
+                {w.label}: {w.remaining_pct == null ? '—' : `${w.remaining_pct}% left · resets ${w.reset_in}`}
+              </span>))}
           </li>);
       })}
     </ul>
@@ -291,8 +295,7 @@ export function RuntimeList({ snap, onRuntime }) {
               <i className={`ph ${r.online ? 'ph-desktop-tower' : 'ph-plug-charging'}`}></i>
             </span>
             <span className="ell"><b>{r.name || r.daemon_id}</b>
-              <span className="small"> {r.daemon_id} · {n} agent{n === 1 ? '' : 's'}</span></span>
-            <span className={`pill ${r.online ? 'ok' : ''}`}>{r.online ? 'ON' : 'OFF'}</span>
+              <span className="small"> {n} agent{n === 1 ? '' : 's'}</span></span>
             <i className="ph ph-caret-right go"></i>
           </li>);
       })}
@@ -332,11 +335,12 @@ export function InfraList({ snap, onEcs }) {
 }
 
 export function HeatSeg({ range, onRange }) {
+  const opts = [{ v: 'week', l: '7 Days' }, { v: 'month', l: '90 Days' }];
   return (
     <span className="seg">
-      {['day', 'week', 'month'].map((r) => (
-        <button key={r} data-r={r} className={range === r ? 'on' : ''}
-          onClick={() => onRange(r)}>{r[0].toUpperCase() + r.slice(1)}</button>))}
+      {opts.map((o) => (
+        <button key={o.v} className={range === o.v ? 'on' : ''}
+          onClick={() => onRange(o.v)}>{o.l}</button>))}
     </span>
   );
 }
@@ -414,13 +418,15 @@ export function StreamPanel({ live, now }) {
     return fresh ? ' fresh' : '';
   };
   const act = live.active || [];
+  const N_RECENT = 8;
+  const recent = (live.recent || []).slice(0, N_RECENT);
   return (
     <>
-      <div>
+      <div className="activehold">
         {!live.ok ? null : act.length ? (
           <ul className="rows">
             {act.map((a, i) => (
-              <li className={`row${mark('a:' + a.model + '|' + a.provider + '|' + a.account)}`} key={i}>
+              <li className={`row frow liveact${mark('a:' + a.model + '|' + a.provider + '|' + a.account)}`} key={i}>
                 <span className="pulse-ic"><i className="ph ph-gear-six"></i></span>
                 <span className="ell"><b className="mono">{a.model}</b>
                   <span className="small"> → {a.provider}{a.account ? ' · ' + a.account : ''}</span></span>
@@ -430,8 +436,8 @@ export function StreamPanel({ live, now }) {
         ) : null}
       </div>
       <ul className="rows" style={{ marginTop: 6 }}>
-        {(live.recent || []).map((q, i) => (
-          <li className={`row${mark('r:' + q.ts + '|' + q.model + '|' + q.in_tok)}`} key={i}>
+        {recent.map((q, i) => (
+          <li className={`row frow${mark('r:' + q.ts + '|' + q.model + '|' + q.in_tok)}`} key={i}>
             <i className={`ph ${q.status === 'ok' ? 'ph-check-circle ok' : 'ph-x-circle crit'}`}></i>
             <span className="ell"><b className="mono">{q.model}</b>
               <span className="small"> → {q.provider}</span></span>
