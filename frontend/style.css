@@ -40,7 +40,7 @@ header { display: flex; gap: 10px; align-items: center; padding: 7px 12px;
 header h1 { font-size: 15px; margin: 0; }
 header .modes { color: var(--muted); font-size: 12px; }
 header .right { margin-left: auto; color: var(--muted); font-size: 12px; }
-#themeBtn { background: var(--panel); border: 1px solid var(--border); border-radius: 0;
+#themeBtn, #sysBtn { background: var(--panel); border: 1px solid var(--border); border-radius: 0;
   cursor: pointer; font-size: 14px; padding: 2px 8px; color: var(--text); }
 html, body { height: 100%; }
 body { overflow: hidden; display: flex; flex-direction: column; }
@@ -168,8 +168,13 @@ details summary.small { color: var(--muted); }
 [data-theme="light"] .agent.st-working { border-left-color: #b25e09; animation-name: workbarL; }
 @keyframes workbar { 0%,100% { border-left-color: #e8830c; } 50% { border-left-color: #f5b04c; } }
 @keyframes workbarL { 0%,100% { border-left-color: #b25e09; } 50% { border-left-color: #e8a33d; } }
+.pulse-ic { color: var(--accent); font-size: 14px; flex: none; }
+.pulse-ic .ph { animation: spin 2.4s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.row.fresh { animation: fadein .4s ease; }
+@keyframes fadein { from { background: var(--hover); } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) {
-  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar { animation: none; }
+  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar, .pulse-ic .ph, .row.fresh { animation: none; }
 }
 .alert > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .agent .ahead { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 3px; }

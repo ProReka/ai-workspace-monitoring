@@ -76,7 +76,7 @@ def snapshot() -> dict:
         "multica_cli": multica.cli_version(),
         "ecs_cluster": config.ECS_CLUSTER,
         "aws_region": config.AWS_REGION,
-        "refresh_s": 60,  # selaras REFRESH_S di main.py
+        "refresh_s": config.env_int("REFRESH_S", 60),
     }
 
     return {

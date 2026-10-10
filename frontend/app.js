@@ -184,15 +184,25 @@ function renderStream(l) {
   const age = l.age_s != null ? Math.round(l.age_s) + "s old" : "";
   document.getElementById("streamAge").textContent = l.ok ? `live · ${age}` : "unavailable";
   const act = l.active || [];
+  const seen = renderStream.seen || (renderStream.seen = new Set());
+  const akey = a => `${a.model}|${a.provider}|${a.account}`;
   document.getElementById("streamActive").innerHTML = !l.ok ? "" : act.length
-    ? `<div class="taskline"><span class="pulsebar" title="in flight right now"></span> <b>${act.length} in flight</b>
-       <span class="small">${act.map(a => `${esc(a.model)} → ${esc(a.provider)}${a.account ? " · " + esc(a.account) : ""}${a.count > 1 ? " ×" + a.count : ""}`).join(" · ")}</span></div>`
+    ? `<ul class="rows">` + act.map(a => {
+        const k = "a:" + akey(a), fresh = !seen.has(k); seen.add(k);
+        return `<li class="row${fresh ? " fresh" : ""}"><span class="pulse-ic"><i class="ph ph-gear-six"></i></span>
+        <span class="ell"><b class="mono">${esc(a.model)}</b> <span class="small">→ ${esc(a.provider)}${a.account ? " · " + esc(a.account) : ""}</span></span>
+        <span class="small mono">in flight${a.count > 1 ? " ×" + a.count : ""}</span></li>`;
+      }).join("") + `</ul>`
     : `<div class="small">No in-flight requests.</div>`;
-  document.getElementById("streamRecent").innerHTML = !l.ok ? "" : (l.recent || []).map(q =>
-    `<li class="row"><i class="ph ${q.status === "ok" ? "ph-check-circle ok" : "ph-x-circle crit"}"></i>
+  const rkey = q => `${q.ts}|${q.model}|${q.in_tok}`;
+  document.getElementById("streamRecent").innerHTML = !l.ok ? "" : (l.recent || []).map(q => {
+    const k = "r:" + rkey(q), fresh = !seen.has(k); seen.add(k);
+    if (seen.size > 400) { const it = seen.values(); for (let i = 0; i < 100; i++) seen.delete(it.next().value); }
+    return `<li class="row${fresh ? " fresh" : ""}"><i class="ph ${q.status === "ok" ? "ph-check-circle ok" : "ph-x-circle crit"}"></i>
      <span class="ell"><b class="mono">${esc(q.model)}</b> <span class="small">→ ${esc(q.provider)}</span></span>
      <span class="small mono" title="${big(q.in_tok)} in / ${big(q.out_tok)} out tokens">↓${big(q.in_tok)} ↑${big(q.out_tok)}</span>
-     <span class="small" title="${esc(q.ts || "")}"><i class="ph ph-clock"></i> ${agoShort(q.ts)}</span></li>`).join("");
+     <span class="small" title="${esc(q.ts || "")}"><i class="ph ph-clock"></i> ${agoShort(q.ts)}</span></li>`;
+  }).join("");
   const keys = l.by_key || [];
   const kMax = Math.max(1, ...keys.map(k => k.requests));
   document.getElementById("streamKeys").innerHTML = !l.ok ? "" : keys.map(k =>
@@ -390,6 +400,24 @@ function renderRuntimes(s) {
   document.querySelectorAll("#runtimes .row").forEach(el =>
     el.addEventListener("click", () => openRuntime(known[+el.dataset.rt])));
 }
+document.getElementById("sysBtn").addEventListener("click", openSys);
+function openSys() {
+  if (!SNAP) return;
+  const s = SNAP, m = s.meta || {};
+  const rows = [["Workspace", `${m.workspace} (${m.workspace_id})`], ["9Router", `${m.router_url} · v${m.router_version}`],
+    ["Multica CLI", "v" + (m.multica_cli || "?")], ["ECS", `${m.ecs_cluster} · ${m.aws_region} (${s.modes.ecs})`],
+    ["Refresh", `snapshot every ${m.refresh_s}s + cache · live 10s`],
+    ["Modes", `multica:${s.modes.multica} · router:${s.modes.router} · ecs:${s.modes.ecs}`]];
+  openModal(`<h3><i class="ph ph-info"></i> System info & debug</h3>
+    <ul class="rows">${rows.map(([k, v]) =>
+      `<li class="row"><span class="small">${k}</span><span class="mono">${esc(v)}</span></li>`).join("")}</ul>
+    <h4>9Router endpoints</h4>
+    <ul class="rows">${Object.entries(s.router.endpoint_status || {}).map(([k, v]) =>
+      `<li class="row"><span class="mono small">${esc(k)}</span><span class="mono">${v === 200 ? '<span class="ok">200</span>' : `<span class="crit">${esc(String(v))}</span>`}</span></li>`).join("")}</ul>
+    <h4>Raw</h4>
+    <pre class="mono" style="white-space:pre-wrap;max-height:180px;overflow:auto">insights: ${esc(JSON.stringify(s.insights || []))}
+note router: ${esc(s.router.note || "-")}${esc(s.ecs.note ? "\nnote ecs: " + s.ecs.note : "")}</pre>`);
+}
 function renderMon(s) {
   document.getElementById("ecs").innerHTML = (s.ecs.services || []).map((v, i) =>
     `<li class="row" data-ecs="${i}" role="button" tabindex="0" aria-label="ECS service ${esc(v.service)}. Activate for details."><span class="mono">${esc(short(v.service, 26))}</span>
@@ -402,16 +430,6 @@ function renderMon(s) {
   document.getElementById("staleCount").textContent = stale.length;
   document.getElementById("stale").innerHTML = stale.map(r =>
     `<li class="row stale mini"><span class="mono ell">${esc(r.daemon_id)}</span><span class="small" style="margin-left:auto">${r.online ? "online" : "offline"} · ${esc(r.last_seen || "—")}</span></li>`).join("");
-  const m = s.meta || {};
-  const rows = [["Workspace", `${m.workspace} (${m.workspace_id})`], ["9Router", `${m.router_url} · v${m.router_version}`],
-    ["Multica CLI", "v" + (m.multica_cli || "?")], ["ECS", `${m.ecs_cluster} · ${m.aws_region}`],
-    ["Refresh", `every ${m.refresh_s}s + cache`]];
-  document.getElementById("sysinfo").innerHTML = rows.map(([k, v]) =>
-    `<li class="row"><span class="small">${k}</span><span class="mono">${esc(v)}</span></li>`).join("");
-  document.getElementById("eps").innerHTML = Object.entries(s.router.endpoint_status || {}).map(([k, v]) =>
-    `<li class="row"><span class="mono small">${esc(k)}</span><span class="mono">${v === 200 ? '<span class="ok">200</span>' : `<span class="crit">${esc(String(v))}</span>`}</span></li>`).join("");
-  document.getElementById("raw").textContent =
-    `insights: ${JSON.stringify(s.insights || [], null, 1)}\nnote router: ${s.router.note || "-"}\nnote ecs: ${s.ecs.note || "-"}`;
 }
 
 function renderHeat(h) {

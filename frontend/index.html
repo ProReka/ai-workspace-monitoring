@@ -14,6 +14,7 @@
   <h1><i class="ph ph-buildings"></i> Command Center</h1>
   <span class="pill ok" id="wspill">…</span>
   <button id="themeBtn" title="Toggle light / dark mode"><i class="ph ph-moon"></i></button>
+  <button id="sysBtn" title="System info & debug"><i class="ph ph-info"></i></button>
   <span class="modes" id="modes">…</span>
   <span class="right"><span id="clock">…</span> <span id="clockAge" class="small"></span> · <a href="/api/snapshot" style="color:inherit">JSON</a></span>
 </header>
@@ -30,12 +31,22 @@
       <ul class="rows" id="quotas"></ul>
     </section>
     <section>
-      <h2><i class="ph ph-git-fork"></i> combos</h2>
-      <ul class="rows" id="combos"></ul>
+      <h2><i class="ph ph-desktop-tower"></i> Runtimes</h2>
+      <ul class="rows" id="runtimes"></ul>
+      <details><summary class="small">Non-standard (<span id="staleCount">0</span>)</summary>
+        <ul class="rows" id="stale"></ul>
+      </details>
     </section>
     <section>
       <h2><i class="ph ph-desktop-tower"></i> Runtimes</h2>
       <ul class="rows" id="runtimes"></ul>
+      <details><summary class="small">Non-standard (<span id="staleCount">0</span>)</summary>
+        <ul class="rows" id="stale"></ul>
+      </details>
+    </section>
+    <section>
+      <h2><i class="ph ph-cloud"></i> Infra</h2>
+      <ul class="rows" id="ecs"></ul>
     </section>
   </aside>
   <section class="col center" aria-label="Workspace">
@@ -66,18 +77,6 @@
       </h2>
       <div id="heatmap"></div>
       <div class="legend small">Less <i class="cell lv0"></i><i class="cell lv1"></i><i class="cell lv2"></i><i class="cell lv3"></i><i class="cell lv4"></i> More</div>
-    </section>
-    <section>
-      <h2><i class="ph ph-activity"></i> Monitoring</h2>
-      <ul class="rows" id="ecs"></ul>
-      <details><summary class="small">Non-standard runtimes (<span id="staleCount">0</span>)</summary>
-        <ul class="rows" id="stale"></ul>
-      </details>
-      <details><summary class="small"><b>System info &amp; debug</b></summary>
-        <ul class="rows" id="sysinfo"></ul>
-        <ul class="rows" id="eps" style="margin-top:6px"></ul>
-        <pre class="mono" id="raw" style="white-space:pre-wrap;max-height:150px;overflow:auto;margin-top:6px"></pre>
-      </details>
     </section>
   </aside>
   <section class="dock" aria-label="Live traffic">

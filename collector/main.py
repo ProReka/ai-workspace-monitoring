@@ -23,10 +23,23 @@ from .nine_router import live_traffic
 app = FastAPI(title="office-visualizer")
 BASE = pathlib.Path(__file__).resolve().parent.parent
 
-REFRESH_S = 60
+REFRESH_S = config.env_int("REFRESH_S", 60)
 
 _cache: dict = {"data": None, "ts": 0.0, "refreshing": False}
 _lock = threading.Lock()
+
+
+def _rotate_log() -> None:
+    """Rotate server.log di bawah 5MB agar tidak tumbuh tanpa batas."""
+    try:
+        log = BASE / "data" / "server.log"
+        if log.exists() and log.stat().st_size > 5 * 1024 * 1024:
+            log.replace(BASE / "data" / "server.log.1")
+    except OSError:
+        pass
+
+
+_rotate_log()
 
 
 def _update() -> None:

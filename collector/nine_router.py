@@ -73,8 +73,10 @@ def _read_file_cookie() -> str | None:
 
 def _write_file_cookie(token: str) -> None:
     try:
+        import os
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         COOKIE_FILE.write_text(json.dumps({COOKIE_NAME: token}))
+        os.chmod(COOKIE_FILE, 0o600)
     except OSError:
         pass
 

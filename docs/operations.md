@@ -17,7 +17,7 @@ Or `docker compose up --build` (needs `.env`; Multica adapter needs CLI — mock
 
 `MULTICA_TOKEN, MULTICA_WORKSPACE[, MULTICA_WORKSPACE_NAME], NINEROUTER_URL,
 NINEROUTER_KEY, NINEROUTER_PASSWORD[, NINEROUTER_COOKIE], AWS_REGION, ECS_CLUSTER`
-(+ `PORT`, `POLL_*` unused by cache loop — refresh is fixed 60s, see below).
+(+ `PORT`, `REFRESH_S` snapshot cadence, default 60).
 
 ## Notes
 

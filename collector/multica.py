@@ -109,10 +109,38 @@ def _age_s(task: dict) -> float | None:
     return None
 
 
+_authed: bool | None = None
+
+
+def _have_cli() -> bool:
+    import shutil
+    return shutil.which("multica") is not None
+
+
+def _ensure_login() -> bool:
+    """Login CLI sekali per proses bila ada token (idempotent)."""
+    global _authed
+    if _authed is not None:
+        return _authed
+    _authed = False
+    if not config.MULTICA_TOKEN or not _have_cli():
+        return False
+    try:
+        r = subprocess.run(["multica", "login", "--token", config.MULTICA_TOKEN],
+                           capture_output=True, text=True, timeout=60)
+        _authed = r.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        _authed = False
+    return _authed
+
+
 def collect() -> dict:
     """Return {'ok', 'mode', 'agents', 'runtimes_known', 'runtimes_stale', 'alerts'}."""
-    if not config.MULTICA_TOKEN:
-        return _mock()
+    if not config.MULTICA_TOKEN or not _have_cli():
+        out = _mock()
+        out["note"] = "mock (no MULTICA_TOKEN or multica CLI)"
+        return out
+    _ensure_login()
     try:
         return _live()
     except Exception as e:
@@ -125,12 +153,19 @@ def collect() -> dict:
 def _live() -> dict:
     from concurrent.futures import ThreadPoolExecutor
 
-    agents = _as_list(
-        _run_json(_cmd("agent", "list", "--output", "json")), "agents"
-    )
-    runtimes = _as_list(
-        _run_json(_cmd("runtime", "list", "--output", "json")), "runtimes"
-    )
+    raw_agents = _run_json(_cmd("agent", "list", "--output", "json"))
+    raw_runtimes = _run_json(_cmd("runtime", "list", "--output", "json"))
+    if raw_agents is None and raw_runtimes is None:
+        # CLI ada tapi tidak terautentikasi / gagal total — coba login ulang sekali.
+        global _authed
+        _authed = None
+        if _ensure_login():
+            raw_agents = _run_json(_cmd("agent", "list", "--output", "json"))
+            raw_runtimes = _run_json(_cmd("runtime", "list", "--output", "json"))
+        if raw_agents is None and raw_runtimes is None:
+            raise RuntimeError("multica CLI not authenticated (login failed)")
+    agents = _as_list(raw_agents, "agents")
+    runtimes = _as_list(raw_runtimes, "runtimes")
     # Scope ketat: hanya workspace GFS (bukan hasil workspace lain).
     agents = [a for a in agents
               if isinstance(a, dict) and (not _WS or a.get("workspace_id", _WS) == _WS)]
