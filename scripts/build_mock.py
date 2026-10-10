@@ -92,6 +92,7 @@ def main() -> None:
     for a in agents:
         a["daemon_id"] = DAEMONS.get(a.get("daemon_id", ""), "demo-legacy")
 
+    snap["meta"]["company"] = "Acme Corp"
     snap["meta"]["workspace"] = "Demo"
     snap["meta"]["workspace_id"] = WS_ID
     snap["meta"]["router_url"] = ROUTER

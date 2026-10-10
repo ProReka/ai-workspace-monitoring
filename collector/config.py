@@ -32,6 +32,7 @@ POLL_MULTICA_S = env_int("POLL_MULTICA_S", 20)
 POLL_ROUTER_S = env_int("POLL_ROUTER_S", 15)
 POLL_ECS_S = env_int("POLL_ECS_S", 30)
 PORT = env_int("PORT", 8080)
+COMPANY_NAME = env("COMPANY_NAME", "Command Center")
 
 # Daemon IDs known dari environments/ai (jadi default mapping, bukan hardcode mati).
 KNOWN_DAEMONS = [

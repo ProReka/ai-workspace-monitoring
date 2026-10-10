@@ -52,6 +52,17 @@ function ProviderPie({ providers, live }) {
   );
 }
 
+function LivePill({ snap }) {
+  const age = snap?.cache_age_s;
+  const stale = age == null || age > 120;
+  return (
+    <span className={`pill ${stale ? '' : 'ok working'}`}
+      title={age == null ? 'waiting for data' : `data ${Math.round(age)}s old`}>
+      {stale ? 'STALE' : 'LIVE'}
+    </span>
+  );
+}
+
 function LiveDock({ live, routerUrl }) {
   const [shut, setShut] = useStored('ov-dock', false);
   const [height, setHeight] = useStored('ov-dock-h', 0);
@@ -182,8 +193,8 @@ export default function App() {
     <>
       <header>
         <span className={`livedot${s?.refreshing ? ' busy' : ''}`} title="collector alive"></span>
-        <h1><i className="ph ph-buildings"></i> Command Center</h1>
-        <span className="pill ok">ws: {(s?.meta?.workspace) || '…'}</span>
+        <h1><i className="ph ph-buildings"></i> {(s?.meta?.company) || 'Command Center'}</h1>
+        <LivePill snap={s} />
         {!s && snap.error && (
           <span className="modes crit">collector unreachable ({String(snap.error.message || snap.error)}) — retrying</span>)}
         <button id="themeBtn" title="Toggle light / dark mode"
