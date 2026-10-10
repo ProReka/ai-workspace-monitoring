@@ -25,10 +25,16 @@ function ProviderPie({ providers, live }) {
   const hot = (live?.models || []).some((m) => (m.req_min || 0) > 0) || (live?.active || []).length > 0;
   const R = 44, C = 2 * Math.PI * R;
   let acc = 0;
+  const byProv = {};
+  for (const m of (live?.models || [])) {
+    (byProv[m.provider] = byProv[m.provider] || []).push(m);
+  }
   const segs = providers.map((p, i) => {
     const start = acc / tot;
     acc += (p.share || 0);
-    return { ...p, color: provColor(p.provider, i), off: -start * C, len: (p.share || 0) / tot * C };
+    const models = (byProv[p.provider] || []).map((m) =>
+      `${m.model}${m.req_min > 0 ? ` (${m.req_min}/m)` : ''}`).join(', ') || 'no models seen';
+    return { ...p, color: provColor(p.provider, i), off: -start * C, len: (p.share || 0) / tot * C, models };
   });
   return (
     <div className={`piewrap${hot ? ' hot' : ''}`} title={hot ? 'traffic flowing right now' : 'provider share by requests'}>
@@ -38,7 +44,7 @@ function ProviderPie({ providers, live }) {
           <circle key={s.provider} cx="55" cy="55" r={R} fill="none"
             stroke={s.color} strokeWidth="16" strokeDasharray={`${s.len.toFixed(1)} ${C.toFixed(1)}`}
             strokeDashoffset={s.off.toFixed(1)} transform="rotate(-90 55 55)" opacity="0.92">
-            <title>{`${s.provider}: ${s.share}%`}</title>
+            <title>{`${s.provider}: ${s.share}% — ${s.models}`}</title>
           </circle>))}
       </svg>
       <div className="piecenter"><b>{providers.length}</b><span className="small">providers</span></div>
@@ -110,27 +116,26 @@ function LiveDock({ live, routerUrl }) {
           <div>
             <ProviderPie providers={live?.providers || []} live={live} />
             <ul className="rows" style={{ marginTop: 6 }}>
-              {(live?.providers || []).map((p) => (
-                <li className="row" key={p.provider}>
-                  <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} /> <b>{p.provider}</b></span>
-                  <span className="bar" style={{ flex: 1 }}><i style={{ width: `${p.share}%` }}></i></span>
-                  <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
-                </li>))}
+          {(live?.providers || []).map((p) => (
+            <li className="row" key={p.provider}>
+              <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} /> <b>{p.provider}</b></span>
+              <span className="pdot" style={{ background: provColor(p.provider, 0) }} title={`${p.share}% of requests`}></span>
+              <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
+            </li>))}
             </ul>
           </div>
           <div>
             <ul className="rows">
               {(live?.models || []).map((m, i) => (
-                <li className="row" key={m.label || i}>
+                <li className={`row${m.req_min > 0 ? ' liveact' : ''}`} key={m.label || i}>
                   <span className="ell"><Logo provider={m.provider} size={16} routerUrl={routerUrl} />{' '}
                     <b className="mono">{m.model}</b> <span className="small">{m.provider}</span></span>
                   <span className="mono" title="requests per minute">{m.req_min != null ? m.req_min + '/m' : '—'}</span>
-                  <span className="small mono">
-                    {m.tok_min != null ? <><i className="ph ph-arrow-line-down" title={`${big(m.tok_min)} input tokens/min`}></i> </> : null}
-                    <i className="ph ph-clock" title={`last used ${m.last_used || 'unknown'}`}></i>
-                  </span>
-                  {m.req_min > 0 ? <span className="pulsebar" title="active right now"></span> : null}
-                </li>))}
+              <span className="small mono">
+                {m.tok_min != null ? <><i className="ph ph-arrow-line-down" title={`${big(m.tok_min)} input tokens/min`}></i> </> : null}
+                <i className="ph ph-clock" title={`last used ${m.last_used || 'unknown'}`}></i>
+              </span>
+            </li>))}
             </ul>
           </div>
         </div>
@@ -205,10 +210,10 @@ export default function App() {
           {s ? (<>
             <section><Tiles snap={s} /></section>
             <Section id="quota" icon="ph-battery-charging" title="LLM quota" resizable>
-              <QuotaList snap={s} routerUrl={routerUrl} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
+              <QuotaList snap={s} routerUrl={routerUrl} live={live.data} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
             </Section>
             <Section id="combos" icon="ph-git-fork" title="combos" resizable>
-              <ComboList snap={s} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
+              <ComboList snap={s} live={live.data} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
             </Section>
             <Section id="runtimes" icon="ph-desktop-tower" title="Runtimes" resizable>
               <RuntimeList snap={s} onRuntime={(r) => setModal({ kind: 'runtime', id: r.id || r.daemon_id })} />

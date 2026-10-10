@@ -139,7 +139,7 @@ export function MiniSpark({ spark, ts }) {
   const t0 = ts ? new Date((ts - 3600) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   const t1 = ts ? new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   return (
-    <div className="heartbeat" title={`last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
+    <div className="heartbeat" title={`tasks per 5-min block · last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
         <polyline points={pts} fill="none" stroke="var(--ok)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
@@ -211,7 +211,41 @@ export function Workspace({ snap, onAgent, now }) {
   );
 }
 
-export function QuotaList({ snap, routerUrl, onConn }) {
+export function hotProviders(live) {
+  const s = new Set();
+  for (const m of (live?.models || [])) {
+    if ((m.req_min || 0) > 0 && m.provider) s.add(String(m.provider).toLowerCase());
+  }
+  for (const a of (live?.active || [])) {
+    if (a.provider) s.add(String(a.provider).toLowerCase());
+  }
+  return s;
+}
+
+const LINK_PROV = { cc: 'claude', oc: 'opencode' };
+
+export function comboHot(combo, combos, hot) {
+  if (!hot.size) return false;
+  const seen = new Set();
+  const walk = (name, depth) => {
+    if (depth > 2 || seen.has(name)) return false;
+    seen.add(name);
+    const c = (combos || []).find((x) => x.name === name);
+    const chain = c ? c.chain || [] : [{ link: name }];
+    return chain.some((l) => {
+      const link = String(l.link || l);
+      if (!link.includes('/')) {
+        return (combos || []).some((x) => x.name === link) ? walk(link, depth + 1) : false;
+      }
+      const head = link.split('/')[0].toLowerCase();
+      return hot.has(LINK_PROV[head] || head);
+    });
+  };
+  return walk(combo.name, 0);
+}
+
+export function QuotaList({ snap, routerUrl, live, onConn }) {
+  const hot = hotProviders(live);
   const conns = [...(snap.router.connections || [])].sort((x, y) => y.isActive - x.isActive);
   return (
     <ul className="rows">
@@ -227,8 +261,9 @@ export function QuotaList({ snap, routerUrl, onConn }) {
         const prim = wins.find((w) => w.label === c.primary) || wins[0];
         const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
         const cls = isNaN(pv) ? '' : pv <= 10 ? 'hot' : pv <= 30 ? 'mid' : '';
+        const isHot = c.isActive && hot.has(String(c.provider || '').toLowerCase());
         return (
-          <li className="row stack" key={c.id || i} role="button" tabIndex={0}
+          <li className={`row stack${isHot ? ' liveact' : ''}`} key={c.id || i} role="button" tabIndex={0}
             aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
             <span className="ell" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -256,16 +291,18 @@ const LINK_ICON = {
   error: 'ph-x-circle crit', inactive: 'ph-minus-circle crit', unknown: 'ph-question',
 };
 
-export function ComboList({ snap, onCombo }) {
+export function ComboList({ snap, live, onCombo }) {
   const combos = snap.router.combos || [];
+  const hot = hotProviders(live);
   const dot = { ok: ['ok', 'ph-check'], degraded: ['warn', 'ph-minus'], down: ['crit', 'ph-x'], unknown: ['mut', 'ph-question'] };
   return (
     <ul className="rows">
       {combos.map((c) => {
         const v = c.verdict || 'unknown';
         const [dc, di] = dot[v] || dot.unknown;
+        const isHot = comboHot(c, combos, hot);
         return (
-          <li className="row" key={c.name} role="button" tabIndex={0}
+          <li className={`row${isHot ? ' liveact' : ''}`} key={c.name} role="button" tabIndex={0}
             aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
             <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
