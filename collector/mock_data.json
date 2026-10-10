@@ -1,6 +1,6 @@
 {
  "snapshot": {
-  "ts": 1791652173.917433,
+  "ts": 1791652883.7336378,
   "modes": {
    "multica": "live",
    "router": "live",
@@ -131,7 +131,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -275,7 +275,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -419,7 +419,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -523,36 +523,28 @@
        0
       ],
       [
+       0,
+       0
+      ],
+      [
        2,
-       38806
+       23753
       ],
       [
        0,
        0
-      ],
-      [
-       0,
-       0
-      ],
-      [
-       1,
-       18418
-      ],
-      [
-       1,
-       5335
       ],
       [
        1,
        12662
       ],
       [
-       1,
-       7554
+       2,
+       12989
       ],
       [
-       1,
-       5435
+       0,
+       0
       ],
       [
        1,
@@ -561,9 +553,17 @@
       [
        0,
        0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -591,7 +591,7 @@
      "dispatched": 0,
      "running": 1,
      "pending_total": 1,
-     "oldest_pending_s": 346.3058612346649,
+     "oldest_pending_s": 1056.0024559497833,
      "last_status": "running",
      "stale_runtime": false,
      "current": {
@@ -600,7 +600,7 @@
       "issue": "01a1165f-c49b-7a11-8b44-a0e60aab845b",
       "kind": "comment",
       "kind_label": "Replying to comment",
-      "elapsed_s": 300.0
+      "elapsed_s": 1010.0
      },
      "recent": [
       {
@@ -609,7 +609,7 @@
        "issue": "01a1165f-c49b-7a11-8b44-a0e60aab845b",
        "kind": "comment",
        "kind_label": "Replying to comment",
-       "elapsed_s": 300.0,
+       "elapsed_s": 1010.0,
        "started_at": "2026-10-10T17:04:33Z",
        "ended_at": null
       },
@@ -674,14 +674,6 @@
        0
       ],
       [
-       0,
-       0
-      ],
-      [
-       0,
-       0
-      ],
-      [
        1,
        15925
       ],
@@ -712,9 +704,17 @@
       [
        0,
        0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -742,7 +742,7 @@
      "dispatched": 0,
      "running": 1,
      "pending_total": 1,
-     "oldest_pending_s": 752.3059158325195,
+     "oldest_pending_s": 1462.0024890899658,
      "last_status": "running",
      "stale_runtime": false,
      "current": {
@@ -751,7 +751,7 @@
       "issue": "01a125c4-f5b3-7db1-8307-929e5a5d756c",
       "kind": "direct",
       "kind_label": "Replying to DM",
-      "elapsed_s": 650.0
+      "elapsed_s": 1360.0
      },
      "recent": [
       {
@@ -760,7 +760,7 @@
        "issue": "01a125c4-f5b3-7db1-8307-929e5a5d756c",
        "kind": "direct",
        "kind_label": "Replying to DM",
-       "elapsed_s": 650.0,
+       "elapsed_s": 1360.0,
        "started_at": "2026-10-10T16:58:43Z",
        "ended_at": null
       },
@@ -845,15 +845,15 @@
        0
       ],
       [
-       0,
-       0
-      ],
-      [
-       0,
-       0
-      ],
-      [
        1,
+       0
+      ],
+      [
+       0,
+       0
+      ],
+      [
+       0,
        0
       ],
       [
@@ -865,7 +865,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -1009,7 +1009,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -1105,8 +1105,8 @@
      ],
      "spark": [
       [
-       1,
-       17448
+       0,
+       0
       ],
       [
        0,
@@ -1153,7 +1153,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -1277,7 +1277,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -1421,7 +1421,7 @@
        0
       ]
      ],
-     "spark_ts": 1791652173,
+     "spark_ts": 1791652883,
      "profile": {
       "description": "Demo agent profile for screenshots.",
       "instructions": "",
@@ -1567,7 +1567,7 @@
      "account": "Account 1",
      "isActive": true,
      "testStatus": "unavailable",
-     "last_error": "[429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}",
+     "last_error": "[429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}",
      "plan": "Claude Code",
      "windows": [
       {
@@ -1575,16 +1575,16 @@
        "used": 100,
        "total": 100,
        "remaining_pct": 0.0,
-       "reset_at": "2026-10-10T20:49:59.765Z",
-       "reset_in": "3h 40m"
+       "reset_at": "2026-10-10T20:49:59.919Z",
+       "reset_in": "3h 28m"
       },
       {
        "label": "weekly (7d)",
        "used": 72,
        "total": 100,
        "remaining_pct": 28.0,
-       "reset_at": "2026-10-11T01:59:59.765Z",
-       "reset_in": "8h 50m"
+       "reset_at": "2026-10-11T01:59:59.919Z",
+       "reset_in": "8h 38m"
       }
      ],
      "worst_remaining": 0.0,
@@ -1687,7 +1687,7 @@
      "used": 100,
      "total": 100,
      "remaining_pct": 0.0,
-     "reset": "3h 40m",
+     "reset": "3h 28m",
      "status": "unavailable",
      "last_error": "[429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\""
     },
@@ -1698,7 +1698,7 @@
      "used": 72,
      "total": 100,
      "remaining_pct": 28.0,
-     "reset": "8h 50m",
+     "reset": "8h 38m",
      "status": "unavailable",
      "last_error": "[429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\""
     },
@@ -1773,7 +1773,7 @@
        "link": "cc/claude-sonnet-5-5",
        "kind": "upstream",
        "status": "error",
-       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}"
+       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}"
       },
       {
        "link": "oc/muse-spark-1.3-contributor-free",
@@ -1803,7 +1803,7 @@
        "link": "cc/claude-opus-5-5",
        "kind": "upstream",
        "status": "error",
-       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}"
+       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}"
       },
       {
        "link": "oc/muse-spark-1.3-contributor-free",
@@ -1833,7 +1833,7 @@
        "link": "cc/claude-haiku-4-5-20251001",
        "kind": "upstream",
        "status": "error",
-       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}"
+       "detail": "cc: unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}"
       },
       {
        "link": "mmf/mimo-auto",
@@ -1954,12 +1954,12 @@
     {
      "level": "warn",
      "source": "9router",
-     "msg": "claude (Account 1) session (5h): 0% left \u2014 resets 3h 40m"
+     "msg": "claude (Account 1) session (5h): 0% left \u2014 resets 3h 28m"
     },
     {
      "level": "crit",
      "source": "9router",
-     "msg": "claude (Account 1): unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}"
+     "msg": "claude (Account 1): unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}"
     }
    ],
    "note": ""
@@ -2007,12 +2007,12 @@
    {
     "level": "crit",
     "source": "9router",
-    "msg": "claude (Account 1): unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011CftvefpshkG2rF3bL3aTM\"}"
+    "msg": "claude (Account 1): unavailable [429]: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"This request would exceed your account's rate limit. Please try again later.\"},\"request_id\":\"req_011Cftwa2HREmfbsBd4A2BNv\"}"
    },
    {
     "level": "warn",
     "source": "9router",
-    "msg": "claude (Account 1) session (5h): 0% left \u2014 resets 3h 40m"
+    "msg": "claude (Account 1) session (5h): 0% left \u2014 resets 3h 28m"
    }
   ],
   "notices": [
@@ -2020,16 +2020,17 @@
     "level": "info",
     "source": "multica",
     "msg": "7/10 agent runtimes online \u00b7 2 tasks running",
-    "ts": 1791652173.917414
+    "ts": 1791652883.733618
    },
    {
     "level": "info",
     "source": "9router",
-    "msg": "claude (Account 1) weekly (7d): 28% left \u2014 resets 8h 50m",
-    "ts": 1791652173.917414
+    "msg": "claude (Account 1) weekly (7d): 28% left \u2014 resets 8h 38m",
+    "ts": 1791652883.733619
    }
   ],
   "meta": {
+   "company": "Acme Corp",
    "workspace": "Demo",
    "workspace_id": "aaaaaaaa-1111-2222-3333-444444444444",
    "router_url": "http://router.demo.local",
@@ -2045,7 +2046,7 @@
    "expire_queued_s": 7200,
    "quota_warn_pct": 20.0
   },
-  "cache_age_s": 43.5,
+  "cache_age_s": 2.8,
   "refreshing": false
  },
  "live": {
@@ -2124,7 +2125,7 @@
    "totalCompletionTokens": 4021918,
    "totalCost": 120.72
   },
-  "dt_s": 10.6,
+  "dt_s": 11.0,
   "recent": [
    {
     "ts": "2026-10-11T00:01:10Z",
@@ -2218,7 +2219,7 @@
     "last_used": "2026-10-10T23:58:00Z"
    }
   ],
-  "age_s": 6.1
+  "age_s": 7.6
  },
  "history": {
   "week": {
