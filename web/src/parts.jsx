@@ -4,15 +4,21 @@ export function Logo({ provider, size = 16, routerUrl }) {
   const p = String(provider || '').toLowerCase().trim();
   const init = (p || '?')[0].toUpperCase();
   const box = { width: size, height: size };
-  if (!p || !routerUrl) {
+  const local = `providers/${encodeURIComponent(p)}.png`;
+  const remote = routerUrl ? `${routerUrl}/providers/${encodeURIComponent(p)}.png` : '';
+  if (!p) {
     return <span className="logobox noimg" style={box}><span className="logoinit">{init}</span></span>;
   }
   return (
     <span className="logobox" style={box} title={p}>
       <img
         width={size - 2} height={size - 2} loading="lazy" alt=""
-        src={`${routerUrl}/providers/${encodeURIComponent(p)}.png`}
-        onError={(e) => { e.currentTarget.parentNode.classList.add('noimg'); e.currentTarget.remove(); }}
+        src={local}
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (remote && !img.dataset.remote) { img.dataset.remote = '1'; img.src = remote; return; }
+          img.parentNode.classList.add('noimg'); img.remove();
+        }}
       />
       <span className="logoinit">{init}</span>
     </span>
