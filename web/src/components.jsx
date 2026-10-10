@@ -128,16 +128,21 @@ function LastIcon({ status }) {
 export function MiniSpark({ spark, ts }) {
   const cells = Array.isArray(spark) ? spark : [];
   if (!cells.length) return null;
-  const tot = cells.reduce((n, c) => n + (c[0] || 0), 0);
-  const tok = cells.reduce((n, c) => n + (c[1] || 0), 0);
-  const mx = Math.max(1, ...cells.map((c) => c[0] || 0));
+  const W = 120, H = 20;
+  const vals = cells.map((c) => c[0] || 0);
+  const toks = cells.map((c) => c[1] || 0);
+  const mx = Math.max(1, ...vals);
+  const step = W / Math.max(1, vals.length - 1);
+  const pts = vals.map((v, i) => `${(i * step).toFixed(1)},${(H - 2 - (v / mx) * (H - 5)).toFixed(1)}`).join(' ');
+  const tot = vals.reduce((n, v) => n + v, 0);
+  const tok = toks.reduce((n, v) => n + v, 0);
+  const t0 = ts ? new Date((ts - 3600) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+  const t1 = ts ? new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   return (
-    <div className="minispark" title={`last 60 min: ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
-      {cells.map(([n, t], i) => {
-        const tt = ts ? new Date((ts - (11 - i) * 300) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-        return <i key={i} className={`cell lv${n <= 0 ? 0 : Math.min(4, Math.ceil((4 * n) / mx))}`}
-          title={`${tt} · ${n} task${n === 1 ? '' : 's'} · ${big(t)} tokens`}></i>;
-      })}
+    <div className="heartbeat" title={`last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <polyline points={pts} fill="none" stroke="var(--ok)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
     </div>
   );
 }

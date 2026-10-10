@@ -8,6 +8,44 @@ import {
 import { Logo } from './parts.jsx';
 import { big, fmtDur } from './fmt.js';
 
+const PIE_COLORS = ['#26a641', '#e8830c', '#58a6ff', '#a371f7', '#f778ba', '#ffa657'];
+function provColor(p, i) {
+  const low = String(p || '').toLowerCase();
+  if (low.includes('opencode')) return PIE_COLORS[0];
+  if (low.includes('claude')) return PIE_COLORS[1];
+  if (low.includes('lazio')) return PIE_COLORS[2];
+  if (low.includes('gorama')) return PIE_COLORS[3];
+  let h = 0;
+  for (const ch of low) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h},60%,55%)`;
+}
+
+function ProviderPie({ providers, live }) {
+  const tot = providers.reduce((n, p) => n + (p.share || 0), 0) || 100;
+  const hot = (live?.models || []).some((m) => (m.req_min || 0) > 0) || (live?.active || []).length > 0;
+  const R = 44, C = 2 * Math.PI * R;
+  let acc = 0;
+  const segs = providers.map((p, i) => {
+    const start = acc / tot;
+    acc += (p.share || 0);
+    return { ...p, color: provColor(p.provider, i), off: -start * C, len: (p.share || 0) / tot * C };
+  });
+  return (
+    <div className={`piewrap${hot ? ' hot' : ''}`} title={hot ? 'traffic flowing right now' : 'provider share by requests'}>
+      <svg viewBox="0 0 110 110" width="104" height="104">
+        <circle cx="55" cy="55" r={R} fill="none" stroke="var(--border)" strokeWidth="16" />
+        {segs.map((s) => (
+          <circle key={s.provider} cx="55" cy="55" r={R} fill="none"
+            stroke={s.color} strokeWidth="16" strokeDasharray={`${s.len.toFixed(1)} ${C.toFixed(1)}`}
+            strokeDashoffset={s.off.toFixed(1)} transform="rotate(-90 55 55)" opacity="0.92">
+            <title>{`${s.provider}: ${s.share}%`}</title>
+          </circle>))}
+      </svg>
+      <div className="piecenter"><b>{providers.length}</b><span className="small">providers</span></div>
+    </div>
+  );
+}
+
 function LiveDock({ live, routerUrl }) {
   const [shut, setShut] = useStored('ov-dock', false);
   const [height, setHeight] = useStored('ov-dock-h', 0);
@@ -68,27 +106,34 @@ function LiveDock({ live, routerUrl }) {
               <div className="tl"><i className={`ph ${i}`}></i> {x}</div>
             </div>))}
         </div>
-        <ul className="rows" style={{ marginBottom: 8 }}>
-          {(live?.providers || []).map((p) => (
-            <li className="row" key={p.provider}>
-              <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} /> <b>{p.provider}</b></span>
-              <span className="bar" style={{ flex: 1 }}><i style={{ width: `${p.share}%` }}></i></span>
-              <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
-            </li>))}
-        </ul>
-        <ul className="rows">
-          {(live?.models || []).map((m, i) => (
-            <li className="row" key={m.label || i}>
-              <span className="ell"><Logo provider={m.provider} size={16} routerUrl={routerUrl} />{' '}
-                <b className="mono">{m.model}</b> <span className="small">{m.provider}</span></span>
-              <span className="mono" title="requests per minute">{m.req_min != null ? m.req_min + '/m' : '—'}</span>
-              <span className="small mono">
-                {m.tok_min != null ? <><i className="ph ph-arrow-line-down" title={`${big(m.tok_min)} input tokens/min`}></i> </> : null}
-                <i className="ph ph-clock" title={`last used ${m.last_used || 'unknown'}`}></i>
-              </span>
-              {m.req_min > 0 ? <span className="pulsebar" title="active right now"></span> : null}
-            </li>))}
-        </ul>
+        <div className="dockcols">
+          <div>
+            <ProviderPie providers={live?.providers || []} live={live} />
+            <ul className="rows" style={{ marginTop: 6 }}>
+              {(live?.providers || []).map((p) => (
+                <li className="row" key={p.provider}>
+                  <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} /> <b>{p.provider}</b></span>
+                  <span className="bar" style={{ flex: 1 }}><i style={{ width: `${p.share}%` }}></i></span>
+                  <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
+                </li>))}
+            </ul>
+          </div>
+          <div>
+            <ul className="rows">
+              {(live?.models || []).map((m, i) => (
+                <li className="row" key={m.label || i}>
+                  <span className="ell"><Logo provider={m.provider} size={16} routerUrl={routerUrl} />{' '}
+                    <b className="mono">{m.model}</b> <span className="small">{m.provider}</span></span>
+                  <span className="mono" title="requests per minute">{m.req_min != null ? m.req_min + '/m' : '—'}</span>
+                  <span className="small mono">
+                    {m.tok_min != null ? <><i className="ph ph-arrow-line-down" title={`${big(m.tok_min)} input tokens/min`}></i> </> : null}
+                    <i className="ph ph-clock" title={`last used ${m.last_used || 'unknown'}`}></i>
+                  </span>
+                  {m.req_min > 0 ? <span className="pulsebar" title="active right now"></span> : null}
+                </li>))}
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
   );
