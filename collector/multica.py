@@ -173,8 +173,8 @@ def _live() -> dict:
                 if isinstance(r, dict) and (not _WS or r.get("workspace_id", _WS) == _WS)]
     rt_by_id = {r.get("id"): r for r in runtimes if isinstance(r, dict)}
 
-    known_rt = [r for r in runtimes if r.get("daemon_id") in config.KNOWN_DAEMONS]
-    stale_rt = [r for r in runtimes if r.get("daemon_id") not in config.KNOWN_DAEMONS]
+    known_rt = [r for r in runtimes if config.is_known_daemon(r.get("daemon_id", ""))]
+    stale_rt = [r for r in runtimes if not config.is_known_daemon(r.get("daemon_id", ""))]
 
     agents = [a for a in agents if isinstance(a, dict)]
 
@@ -250,7 +250,7 @@ def _live() -> dict:
         # Registrasi basi kadang ber-daemon_id UUID — tampilkan nama runtime-nya.
         if len(did) >= 32 and "-" in did:
             did = str(rt.get("custom_name") or rt.get("name") or did)
-        stale = did not in config.KNOWN_DAEMONS
+        stale = not config.is_known_daemon(did)
         # Mini spark 60 menit: 12 bucket x 5 mnt {tasks, tokens} dari tasks terbaru.
         now_ts = time.time()
         spark = [[0, 0] for _ in range(12)]

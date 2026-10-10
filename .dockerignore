@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+web/node_modules/
+web/dist/
+.git/
+.gitignore
+.vscode/
+tmp/

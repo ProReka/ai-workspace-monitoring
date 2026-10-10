@@ -27,7 +27,7 @@ Tanpa token/CLI, tiap adapter mode mock (UI tetap tampil untuk demo/screenshot):
 - `data/`: `office.db` (history), `router_cookie.json` (session), `server.log`. Gitignored.
 - First snapshot is slow (~5s+); later served from cache. Cookie auto-refreshes.
 - ECS is `mock` without AWS creds — to go live, grant `ecs:DescribeServices/DescribeTasks`
-  on the `gfs-ai-ecs` cluster (read-only) via env/SSO/role.
+  on your cluster (read-only) via env/SSO/role and set `AWS_REGION` + `ECS_CLUSTER`.
 
 ## Roadmap
 

@@ -1,45 +1,38 @@
-"""Adapter ECS: desired vs running per service. Read-only.
+"""ECS adapter: desired vs running per service. Read-only, optional.
 
-Butuh: AWS_REGION + ECS_CLUSTER + kredensial AWS standar (env/SSO/role).
-Tanpa boto3/kredensial -> mode mock (mapping dari KNOWN_DAEMONS).
+Needs AWS_REGION + ECS_CLUSTER + standard AWS credentials (env/SSO/role).
+Without them (or without boto3) it reports mode mock — the runtimes panel
+stays the source of truth and the Infra section hides itself.
 """
 from __future__ import annotations
 
 from . import config
 
-# daemon_id -> substring nama service ECS (lihat outputs.tf worker_service_names).
-SERVICE_HINT = {
-    "proreka-always-on": "multica-always-on",
-    "proreka-devops": "multica-devops",
-    "proreka-backend": "multica-backend",
-    "proreka-frontend": "multica-frontend",
-    "proreka-mobile": "multica-mobile",
-}
-
 
 def collect() -> dict:
+    if not config.AWS_REGION or not config.ECS_CLUSTER:
+        return _mock("AWS_REGION/ECS_CLUSTER not configured")
     try:
         import boto3  # noqa: PLC0415
     except ImportError:
-        return _mock("boto3 belum di-install")
+        return _mock("boto3 not installed")
     try:
         ecs = boto3.client("ecs", region_name=config.AWS_REGION)
-        names = _service_names(ecs)
+        arns = ecs.list_services(cluster=config.ECS_CLUSTER).get("serviceArns", [])
+        names = [a.split("/")[-1] for a in arns]
         if not names:
-            return _mock("cluster/service tidak ditemukan")
+            return _mock("no services in cluster")
         desc = ecs.describe_services(cluster=config.ECS_CLUSTER, services=names)
-        rows = []
-        for s in desc.get("services", []):
-            rows.append(
-                {
-                    "service": s.get("serviceName"),
-                    "desired": s.get("desiredCount"),
-                    "running": s.get("runningCount"),
-                    "pending": s.get("pendingCount"),
-                    "status": s.get("status"),
-                }
-            )
-        # autoscaler service (kalau ada)
+        rows = [
+            {
+                "service": s.get("serviceName"),
+                "desired": s.get("desiredCount"),
+                "running": s.get("runningCount"),
+                "pending": s.get("pendingCount"),
+                "status": s.get("status"),
+            }
+            for s in desc.get("services", [])
+        ]
         auto = [r for r in rows if "autoscaler" in (r["service"] or "")]
         return {
             "ok": True, "mode": "live", "cluster": config.ECS_CLUSTER,
@@ -54,27 +47,19 @@ def collect() -> dict:
         return out
 
 
-def _service_names(ecs) -> list[str]:
-    try:
-        arns = ecs.list_services(cluster=config.ECS_CLUSTER).get("serviceArns", [])
-        return [a.split("/")[-1] for a in arns]
-    except Exception:
-        return []
-
-
 def _mock(why: str) -> dict:
     return {
         "ok": True,
         "mode": "mock",
-        "cluster": config.ECS_CLUSTER,
+        "cluster": config.ECS_CLUSTER or "demo-cluster",
         "services": [
-            {"service": "gfs-ai-multica-always-on", "desired": 1, "running": 1,
+            {"service": "demo-multica-always-on", "desired": 1, "running": 1,
              "pending": 0, "status": "ACTIVE"},
-            {"service": "gfs-ai-multica-backend", "desired": 0, "running": 0,
+            {"service": "demo-multica-backend", "desired": 0, "running": 0,
              "pending": 0, "status": "ACTIVE"},
-            {"service": "gfs-ai-multica-frontend", "desired": 0, "running": 0,
+            {"service": "demo-multica-frontend", "desired": 1, "running": 1,
              "pending": 0, "status": "ACTIVE"},
-            {"service": "gfs-ai-multica-autoscaler", "desired": 1, "running": 1,
+            {"service": "demo-multica-autoscaler", "desired": 1, "running": 1,
              "pending": 0, "status": "ACTIVE"},
         ],
         "autoscaler_present": True,
