@@ -4,11 +4,12 @@ Retensi 7 hari, tulis 1x per refresh (~60 dtk). Bukan data mentah task.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 import time
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(os.environ.get("DATA_DIR") or (Path(__file__).resolve().parent.parent / "data"))
 DB = DATA_DIR / "office.db"
 RETENTION_S = 95 * 24 * 3600
 POINTS = 60  # jumlah titik heatmap
@@ -16,7 +17,9 @@ POINTS = 60  # jumlah titik heatmap
 
 def _db() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(DB, timeout=10)
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA busy_timeout=10000")
     con.execute("""CREATE TABLE IF NOT EXISTS agent_hist(
         ts INTEGER, agent_id TEXT, agent_name TEXT,
         online INTEGER, pending INTEGER, running INTEGER)""")

@@ -184,6 +184,8 @@ export default function App() {
         <span className={`livedot${s?.refreshing ? ' busy' : ''}`} title="collector alive"></span>
         <h1><i className="ph ph-buildings"></i> Command Center</h1>
         <span className="pill ok">ws: {(s?.meta?.workspace) || '…'}</span>
+        {!s && snap.error && (
+          <span className="modes crit">collector unreachable ({String(snap.error.message || snap.error)}) — retrying</span>)}
         <button id="themeBtn" title="Toggle light / dark mode"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
           <i className={`ph ${theme === 'dark' ? 'ph-moon' : 'ph-sun'}`}></i>
@@ -191,10 +193,6 @@ export default function App() {
         <button id="sysBtn" title="System info & debug" onClick={() => setModal({ kind: 'sys' })}>
           <i className="ph ph-info"></i>
         </button>
-        <span className="modes">
-          {s ? `multica:${s.modes.multica} · router:${s.modes.router} · ecs:${s.modes.ecs}`
-            : snap.error ? `collector unreachable (${snap.error.message}) — retrying` : '…'}
-        </span>
         <span className="right">
           <span id="clock">{new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>{' '}
           <span id="clockAge" className="small">

@@ -17,7 +17,10 @@ Or `docker compose up --build` (needs `.env`; Multica adapter needs CLI — mock
 
 `MULTICA_TOKEN, MULTICA_WORKSPACE[, MULTICA_WORKSPACE_NAME], NINEROUTER_URL,
 NINEROUTER_KEY, NINEROUTER_PASSWORD[, NINEROUTER_COOKIE], AWS_REGION, ECS_CLUSTER`
-(+ `PORT`, `REFRESH_S` snapshot cadence, default 60).
+(+ `PORT`, `REFRESH_S` snapshot cadence default 60, `DATA_DIR` default `./data`).
+
+Tanpa token/CLI, tiap adapter mode mock (UI tetap tampil untuk demo/screenshot):
+`env -i PATH="$PATH" PORT=8081 HOME="$HOME" DATA_DIR=/tmp/ov-mock ./.venv/bin/python -m collector.main`
 
 ## Notes
 

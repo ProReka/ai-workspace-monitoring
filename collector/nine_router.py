@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ PAGE_SIZE = 100
 MAX_PAGES = 20
 REFRESH_SKEW_S = 3600  # refresh proaktif bila exp < 1 jam
 COOKIE_NAME = "auth_token"
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(os.environ.get("DATA_DIR") or (Path(__file__).resolve().parent.parent / "data"))
 COOKIE_FILE = DATA_DIR / "router_cookie.json"
 
 # Prefix model -> provider, hanya yang high-confidence. Selain ini: coba
