@@ -132,7 +132,7 @@ async function heat() {
 async function live() {
   try {
     const r = await fetch("/api/live", {cache: "no-store"});
-    if (r.ok) renderLive(await r.json());
+    if (r.ok) { const l = await r.json(); renderLive(l); renderStream(l); }
   } catch (e) {}
 }
 function ago(ts) {
@@ -180,6 +180,31 @@ function renderLive(l) {
      <span class="bar" style="flex:1"><i style="width:${p.share}%"></i></span>
      <span class="mono">${p.share}% · ${big(p.requests)} req${p.cost ? " · $" + p.cost : ""}</span></li>`).join("");
 }
+function renderStream(l) {
+  const age = l.age_s != null ? Math.round(l.age_s) + "s old" : "";
+  document.getElementById("streamAge").textContent = l.ok ? `live · ${age}` : "unavailable";
+  const act = l.active || [];
+  document.getElementById("streamActive").innerHTML = !l.ok ? "" : act.length
+    ? `<div class="taskline"><span class="pulsebar" title="in flight right now"></span> <b>${act.length} in flight</b>
+       <span class="small">${act.map(a => `${esc(a.model)} → ${esc(a.provider)}${a.account ? " · " + esc(a.account) : ""}${a.count > 1 ? " ×" + a.count : ""}`).join(" · ")}</span></div>`
+    : `<div class="small">No in-flight requests.</div>`;
+  document.getElementById("streamRecent").innerHTML = !l.ok ? "" : (l.recent || []).map(q =>
+    `<li class="row"><i class="ph ${q.status === "ok" ? "ph-check-circle ok" : "ph-x-circle crit"}"></i>
+     <span class="ell"><b class="mono">${esc(q.model)}</b> <span class="small">→ ${esc(q.provider)}</span></span>
+     <span class="small mono" title="${big(q.in_tok)} in / ${big(q.out_tok)} out tokens">↓${big(q.in_tok)} ↑${big(q.out_tok)}</span>
+     <span class="small" title="${esc(q.ts || "")}"><i class="ph ph-clock"></i> ${agoShort(q.ts)}</span></li>`).join("");
+  const keys = l.by_key || [];
+  const kMax = Math.max(1, ...keys.map(k => k.requests));
+  document.getElementById("streamKeys").innerHTML = !l.ok ? "" : keys.map(k =>
+    `<li class="row"><span class="ell"><i class="ph ph-key"></i> <b>${esc(k.key)}</b></span>
+     <span class="bar" style="flex:1"><i style="width:${Math.round(k.requests / kMax * 100)}%"></i></span>
+     <span class="mono" title="${big(k.in_tok)} in / ${big(k.out_tok)} out tokens">${big(k.requests)} req</span></li>`).join("");
+  const per = l.per_min || [];
+  const pMax = Math.max(1, ...per);
+  document.getElementById("streamSpark").innerHTML = !l.ok || !per.length ? "" :
+    `<div class="spark" title="requests per minute, last 10 minutes">` +
+    per.map(v => `<i style="height:${Math.max(8, Math.round(v / pMax * 100))}%"></i>`).join("") + `</div>`;
+}
 setInterval(elapsedTick, 5000);
 function elapsedTick() {
   if (!SNAP) return;
@@ -220,7 +245,7 @@ function render(s) {
   document.getElementById("wspill").textContent = "ws: " + ((s.meta || {}).workspace || "?");
   document.getElementById("livedot").className = "livedot" + (s.refreshing ? " busy" : "");
   renderTiles(s); renderNotifs(s); renderWorkspace(s);
-  renderQuotas(s); renderCombos(s); renderMon(s);
+  renderQuotas(s); renderCombos(s); renderRuntimes(s); renderMon(s);
   elapsedTick();
 }
 
@@ -235,12 +260,14 @@ function renderTiles(s) {
     if (!worst || c.worst_remaining < worst.v) worst = {v: c.worst_remaining, p: c.provider};
   }
   const combos = s.router.combos || [];
+  const nAlert = (s.alerts || []).length;
   const tiles = [
     ["ph-robot", `${online}/${agents.length}`, "agents online"],
     ["ph-gear-six", running, "tasks running"],
     ["ph-hourglass-medium", queued, "tasks queued"],
     ["ph-battery-medium", worst ? `${worst.v.toFixed(0)}% ${worst.p}` : "—", "lowest quota"],
     ["ph-git-fork", `${combos.filter(c => c.verdict === "ok").length} ok · ${combos.filter(c => c.verdict === "degraded").length} degraded`, "combos"],
+    ["ph-bell", nAlert, "notifications"],
   ];
   document.getElementById("tiles").innerHTML = tiles.map(([i, v, l]) =>
     `<div class="tile"><div class="tv">${esc(String(v))}</div><div class="tl"><i class="ph ${i}"></i> ${l}</div></div>`).join("");
@@ -286,13 +313,12 @@ function card(a) {
     a.last_error ? `<span class="bdg crit" title="has error — click for details"><i class="ph ph-warning"></i></span>` : "",
     a.stale_runtime ? `<span class="bdg" title="non-standard runtime">stale</span>` : "",
   ].join("");
-  return `<div class="agent ${border}${off ? " off" : ""}${working ? " working" : ""}" data-agent="${a.agent_id}" role="button" tabindex="0"
+  return `<div class="agent ${border}" data-agent="${a.agent_id}" role="button" tabindex="0"
     aria-label="${esc(a.agent_name)}, ${label}. Activate for details." title="${esc(a.agent_name)} — click for details">
     <div class="ahead"><span class="ava">${avatar(a.avatar)}</span>
-      <div class="amin"><div class="aname">${esc(a.agent_name)}</div>
-      <div class="small mono">${esc(a.daemon_id)}</div></div>
+      <div class="amin"><div class="aname">${esc(a.agent_name)}</div></div>
       <span class="dot ${cls.split(" ")[0]}"><i class="ph ${stIcon}"></i></span></div>
-    <div class="amiddle"><span class="rt ${a.runtime_online ? "on" : ""}" title="runtime ${a.runtime_online ? "ON" : "OFF"}: ${esc(a.daemon_id)}">
+    <div class="amiddle"><span class="rt ${a.runtime_online ? "on" : ""}" title="${esc(a.runtime_name || a.daemon_id)} — runtime ${a.runtime_online ? "ON" : "OFF"}">
       <i class="ph ${a.runtime_online ? "ph-desktop-tower" : "ph-plug-charging"}"></i></span>
       <span class="lbl">${label}</span><span class="bdgs">${badges}</span></div>
     ${taskLine(a.current)}</div>`;
@@ -350,6 +376,20 @@ function renderCombos(s) {
     el.addEventListener("click", () => openCombo(combos[+el.dataset.combo])));
 }
 
+function renderRuntimes(s) {
+  const known = s.multica.runtimes_known || [];
+  const agents = s.multica.agents || [];
+  document.getElementById("runtimes").innerHTML = known.map((r, i) => {
+    const n = agents.filter(a => a.runtime_id === r.id).length;
+    return `<li class="row" data-rt="${i}" role="button" tabindex="0" aria-label="Runtime ${esc(r.name || r.daemon_id)}. Activate for details.">
+      <span class="dot ${r.online ? "ok" : "muted"}"><i class="ph ${r.online ? "ph-desktop-tower" : "ph-plug-charging"}"></i></span>
+      <span class="ell"><b>${esc(r.name || r.daemon_id)}</b> <span class="small">${esc(r.daemon_id)} · ${n} agent${n === 1 ? "" : "s"}</span></span>
+      <span class="pill ${r.online ? "ok" : ""}">${r.online ? "ON" : "OFF"}</span>
+      <i class="ph ph-caret-right go"></i></li>`;
+  }).join("");
+  document.querySelectorAll("#runtimes .row").forEach(el =>
+    el.addEventListener("click", () => openRuntime(known[+el.dataset.rt])));
+}
 function renderMon(s) {
   document.getElementById("ecs").innerHTML = (s.ecs.services || []).map((v, i) =>
     `<li class="row" data-ecs="${i}" role="button" tabindex="0" aria-label="ECS service ${esc(v.service)}. Activate for details."><span class="mono">${esc(short(v.service, 26))}</span>
@@ -424,7 +464,7 @@ function openAgent(id) {
     <div style="margin-bottom:8px"><span class="pill ${cls}">${label}</span>
     ${a.stale_runtime ? ' <span class="pill">non-standard runtime</span>' : ""}
     <a class="extlink" href="https://multica.ai" target="_blank" rel="noopener" title="Open Multica web">Open in Multica <i class="ph ph-arrow-square-out"></i></a></div>
-    ${kv("Runtime", `<i class="ph ${a.runtime_online ? "ph-desktop-tower" : "ph-plug-charging"}"></i> ${esc(a.daemon_id)} (${a.runtime_online ? "ON" : "OFF"})`)}
+    ${kv("Runtime", `<i class="ph ${a.runtime_online ? "ph-desktop-tower" : "ph-plug-charging"}"></i> ${esc(a.runtime_name || a.daemon_id)} <span class="small mono">${esc(a.daemon_id)} · ${a.runtime_online ? "ON" : "OFF"}</span>`)}
     ${kv("Provider", `${logo(a.runtime_provider, 14)} ${esc(a.runtime_provider || "—")}`)}
     ${kv("Model", `<span class="mono">${esc(a.model || "default")}</span>`)}
     ${kv("Load", `<span class="mono">q${a.queued} · d${a.dispatched} · r${a.running} · concurrency ${a.concurrency ?? "?"}</span>`)}
@@ -433,6 +473,22 @@ function openAgent(id) {
     ${a.current ? `<h4>Current task</h4><div class="taskline"><i class="ph ${kindIcon(a.current.kind)}"></i>
       <b>${esc(a.current.kind_label || a.current.summary)}</b><div class="small">${fmtMention(a.current.summary)}</div></div>` : ""}
     <h4>Recent tasks</h4><ul class="rows">${recent || '<li class="row"><span class="small">none</span></li>'}</ul>`);
+}
+function openRuntime(r) {
+  if (!r || !SNAP) return;
+  const bound = (SNAP.multica.agents || []).filter(a => a.runtime_id === r.id);
+  openModal(`<h3><i class="ph ${r.online ? "ph-desktop-tower" : "ph-plug-charging"}"></i> ${esc(r.name || r.daemon_id)}</h3>
+    <div style="margin-bottom:8px"><span class="pill ${r.online ? "ok" : ""}">${r.online ? "ONLINE" : "OFFLINE"}</span></div>
+    ${kv("Daemon", `<span class="mono">${esc(r.daemon_id)}</span>`)}
+    ${kv("Provider", `${logo(r.provider, 14)} ${esc(r.provider || "—")}`)}
+    ${kv("Last seen", `<span class="mono">${esc(r.last_seen || "—")}</span>`)}
+    <h4>Bound agents (${bound.length})</h4>
+    <ul class="rows">${bound.map(a => `<li class="row" data-agent="${a.agent_id}" role="button" tabindex="0">
+      <span class="ell"><b>${esc(a.agent_name)}</b></span>
+      <span class="small mono">q${a.queued}·d${a.dispatched}·r${a.running} · ${esc(a.last_status)}</span>
+      <i class="ph ph-caret-right go"></i></li>`).join("") || '<li class="row"><span class="small">none</span></li>'}</ul>`);
+  document.querySelectorAll("#modalBody [data-agent]").forEach(el =>
+    el.addEventListener("click", () => openAgent(el.dataset.agent)));
 }
 function openConn(c) {
   if (!c) return;

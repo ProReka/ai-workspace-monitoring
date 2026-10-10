@@ -222,6 +222,7 @@ def _live() -> dict:
                 "model": a.get("model"),
                 "runtime_id": rid,
                 "daemon_id": did,
+                "runtime_name": str(rt.get("custom_name") or rt.get("name") or did),
                 "runtime_provider": rt.get("provider"),
                 "runtime_online": bool(rt.get("online", rt.get("status") == "online")),
                 "concurrency": a.get("max_concurrent_tasks"),
@@ -264,9 +265,17 @@ def _kind_label(kind: str) -> str:
 
 
 def _rt_summary(runtimes: list[dict]) -> list[dict]:
-    out = []
+    # Dedupe per daemon (registrasi ganda claude+opencode), utamakan yang online.
+    best: dict[str, dict] = {}
     for r in runtimes:
+        d = str(r.get("daemon_id"))
+        cur = best.get(d)
+        if cur is None or (r.get("status") == "online" and cur.get("status") != "online"):
+            best[d] = r
+    out = []
+    for r in best.values():
         out.append({
+            "id": r.get("id"),
             "daemon_id": r.get("daemon_id"),
             "name": r.get("custom_name") or r.get("name"),
             "online": r.get("status") == "online",

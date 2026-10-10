@@ -296,6 +296,7 @@ def live_traffic() -> dict:
                 token = _login(base)
                 code, data = _get(c, base, "/api/usage/stats", token, st)
             names = _node_names(c, base, token)
+            stream = _stream(c, base, token, names)
     except Exception:
         return {"ok": False, "models": [], "providers": [], "totals": {}, "dt_s": 0}
     if code != 200 or not isinstance(data, dict):
@@ -317,7 +318,7 @@ def live_traffic() -> dict:
             rows.append({
                 "model": str(m.get("rawModel") or label),
                 "label": str(label),
-                "provider": str(m.get("provider") or "?"),
+                "provider": _friendly(names, str(m.get("provider") or "?")),
                 "requests": reqs,
                 "req_min": round(rate, 1) if rate is not None and rate >= 0 else None,
                 "tok_min": round((tin or 0) + 0, 0) if tin is not None and tin >= 0 else None,
@@ -343,14 +344,84 @@ def live_traffic() -> dict:
                 continue
             reqs = int(p.get("requests") or 0)
             providers.append({
-                "provider": str(names.get(key, key)),
+                "provider": _friendly(names, str(key)),
                 "requests": reqs,
                 "share": round(reqs / tot_req * 100, 1) if tot_req else 0,
                 "cost": round(float(p.get("cost") or 0), 2),
             })
     providers.sort(key=lambda p: -p["requests"])
     return {"ok": True, "models": rows[:8], "providers": providers,
-            "totals": totals, "dt_s": round(dt, 1)}
+            "totals": totals, "dt_s": round(dt, 1), **stream}
+
+
+def _friendly(names: dict, raw: str) -> str:
+    if not raw:
+        return "?"
+    if raw in names:
+        return names[raw]
+    low = raw.lower()
+    if low == "claude":
+        return "Claude"
+    if low == "opencode":
+        return "OpenCode"
+    for nid, nm in names.items():
+        if low.startswith(nid[:8].lower()) or nid.lower().startswith(low[:8]):
+            return nm
+    return raw if len(raw) < 24 else raw[:18] + "…"
+
+
+def _stream(c: httpx.Client, base: str, token: str | None, names: dict) -> dict:
+    """Recent accesses + in-flight + per-minute + per-key usage (usage page feed)."""
+    out = {"recent": [], "active": [], "per_min": [], "by_key": []}
+    try:
+        r = c.get(f"{base}/api/usage/history",
+                  headers={"Cookie": f"{COOKIE_NAME}={token}"} if token else {},
+                  timeout=TIMEOUT)
+        if r.status_code != 200:
+            return out
+        h = r.json()
+    except (httpx.HTTPError, ValueError):
+        return out
+    if not isinstance(h, dict):
+        return out
+    for q in (h.get("recentRequests", []) or [])[:12]:
+        if not isinstance(q, dict):
+            continue
+        out["recent"].append({
+            "ts": q.get("timestamp"),
+            "model": str(q.get("model") or "?"),
+            "provider": _friendly(names, str(q.get("provider") or "")),
+            "in_tok": int(q.get("promptTokens") or 0),
+            "out_tok": int(q.get("completionTokens") or 0),
+            "status": str(q.get("status") or "?"),
+        })
+    for q in (h.get("activeRequests", []) or [])[:8]:
+        if not isinstance(q, dict):
+            continue
+        out["active"].append({
+            "model": str(q.get("model") or "?"),
+            "provider": _friendly(names, str(q.get("provider") or "")),
+            "account": str(q.get("account") or ""),
+            "count": int(q.get("count") or 1),
+        })
+    out["per_min"] = [int(b.get("requests") or 0) for b in (h.get("last10Minutes", []) or [])
+                      if isinstance(b, dict)][:10]
+    keys: dict[str, dict] = {}
+    by_key = h.get("byApiKey", {})
+    if isinstance(by_key, dict):
+        for composite, q in by_key.items():
+            if not isinstance(q, dict):
+                continue
+            name = str(q.get("keyName") or composite.split("|")[0][:14])
+            k = keys.setdefault(name, {"key": name, "requests": 0, "in_tok": 0,
+                                       "out_tok": 0, "last_used": None})
+            k["requests"] += int(q.get("requests") or 0)
+            k["in_tok"] += int(q.get("promptTokens") or 0)
+            k["out_tok"] += int(q.get("completionTokens") or 0)
+            if q.get("lastUsed") and (not k["last_used"] or q["lastUsed"] > k["last_used"]):
+                k["last_used"] = q["lastUsed"]
+    out["by_key"] = sorted(keys.values(), key=lambda k: -k["requests"])
+    return out
 
 
 def _build_quotas(connections: list[dict],
