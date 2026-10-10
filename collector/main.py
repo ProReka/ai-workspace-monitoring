@@ -16,9 +16,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config
+from .mock import fixture
 from .snapshot import snapshot
 from .store import history, write_snapshot
 from .nine_router import live_traffic
+
+MOCK_TOTAL = bool(config.env("MOCK_TOTAL"))
 
 app = FastAPI(title="office-visualizer")
 BASE = pathlib.Path(__file__).resolve().parent.parent
@@ -71,6 +74,8 @@ def _start() -> None:
 
 @app.get("/api/history")
 def api_history(range: str = "week") -> dict:
+    if MOCK_TOTAL:
+        return fixture("history", {}).get(range, {})
     return history(range if range in ("day", "week", "month") else "week")
 
 
@@ -80,6 +85,10 @@ LIVE_TTL_S = 10
 
 @app.get("/api/live")
 def api_live() -> dict:
+    if MOCK_TOTAL:
+        out = dict(fixture("live", {"ok": False}))
+        out["age_s"] = 3.0
+        return out
     if time.time() - _live_cache["ts"] > LIVE_TTL_S or not _live_cache["data"]:
         _live_cache["data"] = live_traffic()
         _live_cache["ts"] = time.time()
@@ -97,6 +106,13 @@ def healthz() -> dict:
 
 @app.get("/api/snapshot")
 def api_snapshot() -> dict:
+    if MOCK_TOTAL:
+        out = dict(fixture("snapshot", {}))
+        out["ts"] = time.time()
+        out["cache_age_s"] = 4.0
+        out["refreshing"] = False
+        out["modes"] = {"multica": "mock", "router": "mock", "ecs": "mock"}
+        return out
     with _lock:
         data, ts, refreshing = _cache["data"], _cache["ts"], _cache["refreshing"]
     if data is None:
