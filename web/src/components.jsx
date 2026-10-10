@@ -163,7 +163,8 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
         <span className="ava"><Avatar value={a.avatar} /></span>
         <div className="amin">
           <div className="aname">{a.agent_name}</div>
-          <div className={`sline ${st.cls}`}><i className={`ph ${st.icon}`}></i>{st.label}</div>
+          <div className={`sline ${st.cls}`}><i className={`ph ${st.icon}`}></i>{st.label}
+            {a.stale_runtime && !a.runtime_online && <span className="bdg" title="non-standard runtime">stale</span>}</div>
         </div>
         <span className={`dot ${st.cls}`}><i className={`ph ${st.icon}`}></i></span>
       </div>
@@ -180,12 +181,11 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
           <span className="ld warn" title={`waiting ${fmtDur(a.oldest_pending_s)}`}>
             <i className="ph ph-hourglass-medium"></i>{fmtDur(a.oldest_pending_s)}</span>)}
         <LastIcon status={a.last_status} />
-        <MiniSpark spark={a.spark} ts={a.spark_ts} />
         <span className="bdgs">
           {a.last_error && (
             <span className="bdg crit" title={`last run ${a.last_status} — click for details`}><i className="ph ph-warning"></i></span>)}
-          {a.stale_runtime && <span className="bdg" title="non-standard runtime">stale</span>}
         </span>
+        <MiniSpark spark={a.spark} ts={a.spark_ts} />
       </div>
       <TaskLine cur={a.current} snapTs={snapTs} now={now} onAgent={onAgent} />
     </div>
