@@ -128,22 +128,22 @@ function LastIcon({ status }) {
 export function MiniSpark({ spark, ts }) {
   const cells = Array.isArray(spark) ? spark : [];
   if (!cells.length) return null;
-  const W = 120, H = 20;
+  const W = 84, H = 14;
   const vals = cells.map((c) => c[0] || 0);
   const toks = cells.map((c) => c[1] || 0);
   const mx = Math.max(1, ...vals);
   const step = W / Math.max(1, vals.length - 1);
-  const pts = vals.map((v, i) => `${(i * step).toFixed(1)},${(H - 2 - (v / mx) * (H - 5)).toFixed(1)}`).join(' ');
+  const pts = vals.map((v, i) => `${(i * step).toFixed(1)},${(H - 2 - (v / mx) * (H - 4)).toFixed(1)}`).join(' ');
   const tot = vals.reduce((n, v) => n + v, 0);
   const tok = toks.reduce((n, v) => n + v, 0);
   const t0 = ts ? new Date((ts - 3600) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   const t1 = ts ? new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   return (
-    <div className="heartbeat" title={`tasks per 5-min block · last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
+    <span className="heartbeat inline" title={`tasks per 5-min block · last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
         <polyline points={pts} fill="none" stroke="var(--ok)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
-    </div>
+    </span>
   );
 }
 
@@ -180,13 +180,13 @@ export function AgentCard({ a, onAgent, now, snapTs }) {
           <span className="ld warn" title={`waiting ${fmtDur(a.oldest_pending_s)}`}>
             <i className="ph ph-hourglass-medium"></i>{fmtDur(a.oldest_pending_s)}</span>)}
         <LastIcon status={a.last_status} />
+        <MiniSpark spark={a.spark} ts={a.spark_ts} />
         <span className="bdgs">
           {a.last_error && (
             <span className="bdg crit" title={`last run ${a.last_status} — click for details`}><i className="ph ph-warning"></i></span>)}
           {a.stale_runtime && <span className="bdg" title="non-standard runtime">stale</span>}
         </span>
       </div>
-      <MiniSpark spark={a.spark} ts={a.spark_ts} />
       <TaskLine cur={a.current} snapTs={snapTs} now={now} onAgent={onAgent} />
     </div>
   );
@@ -220,28 +220,6 @@ export function hotProviders(live) {
     if (a.provider) s.add(String(a.provider).toLowerCase());
   }
   return s;
-}
-
-const LINK_PROV = { cc: 'claude', oc: 'opencode' };
-
-export function comboHot(combo, combos, hot) {
-  if (!hot.size) return false;
-  const seen = new Set();
-  const walk = (name, depth) => {
-    if (depth > 2 || seen.has(name)) return false;
-    seen.add(name);
-    const c = (combos || []).find((x) => x.name === name);
-    const chain = c ? c.chain || [] : [{ link: name }];
-    return chain.some((l) => {
-      const link = String(l.link || l);
-      if (!link.includes('/')) {
-        return (combos || []).some((x) => x.name === link) ? walk(link, depth + 1) : false;
-      }
-      const head = link.split('/')[0].toLowerCase();
-      return hot.has(LINK_PROV[head] || head);
-    });
-  };
-  return walk(combo.name, 0);
 }
 
 export function QuotaList({ snap, routerUrl, live, onConn }) {
@@ -291,18 +269,16 @@ const LINK_ICON = {
   error: 'ph-x-circle crit', inactive: 'ph-minus-circle crit', unknown: 'ph-question',
 };
 
-export function ComboList({ snap, live, onCombo }) {
+export function ComboList({ snap, onCombo }) {
   const combos = snap.router.combos || [];
-  const hot = hotProviders(live);
   const dot = { ok: ['ok', 'ph-check'], degraded: ['warn', 'ph-minus'], down: ['crit', 'ph-x'], unknown: ['mut', 'ph-question'] };
   return (
     <ul className="rows">
       {combos.map((c) => {
         const v = c.verdict || 'unknown';
         const [dc, di] = dot[v] || dot.unknown;
-        const isHot = comboHot(c, combos, hot);
         return (
-          <li className={`row${isHot ? ' liveact' : ''}`} key={c.name} role="button" tabIndex={0}
+          <li className="row" key={c.name} role="button" tabIndex={0}
             aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
             <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
@@ -460,12 +436,10 @@ export function StreamPanel({ live, now }) {
     return fresh ? ' fresh' : '';
   };
   const act = live.active || [];
-  const N_RECENT = 8;
-  const recent = (live.recent || []).slice(0, N_RECENT);
+  const recent = live.recent || [];
   return (
     <>
-      <div className="activehold">
-        {!live.ok ? null : act.length ? (
+      {!live.ok ? null : act.length ? (
           <ul className="rows">
             {act.map((a, i) => (
               <li className={`row frow liveact${mark('a:' + a.model + '|' + a.provider + '|' + a.account)}`} key={i}>
@@ -476,7 +450,6 @@ export function StreamPanel({ live, now }) {
               </li>))}
           </ul>
         ) : null}
-      </div>
       <ul className="rows" style={{ marginTop: 6 }}>
         {recent.map((q, i) => (
           <li className={`row frow${mark('r:' + q.ts + '|' + q.model + '|' + q.in_tok)}`} key={i}>
