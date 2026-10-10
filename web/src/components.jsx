@@ -693,6 +693,10 @@ export function Modal({ snap, hist, modal, onAgent, onClose }) {
       <h3><i className="ph ph-info"></i> System info & debug</h3>
       <ul className="rows">{rows.map(([k, v]) => (
         <li className="row" key={k}><span className="small">{k}</span><span className="mono">{v}</span></li>))}</ul>
+      <div className="small" style={{ marginTop: 4 }}>
+        <a href="/api/snapshot" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Snapshot JSON</a>
+        {' · '}<a href="/api/live" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Live JSON</a>
+      </div>
       <h4>9Router endpoints</h4>
       <ul className="rows">{Object.entries(snap.router.endpoint_status || {}).map(([k, v]) => (
         <li className="row" key={k}><span className="mono small">{k}</span>

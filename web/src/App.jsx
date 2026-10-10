@@ -56,7 +56,7 @@ function LivePill({ snap }) {
   const age = snap?.cache_age_s;
   const stale = age == null || age > 120;
   return (
-    <span className={`pill ${stale ? '' : 'ok working'}`}
+    <span className={`pill live${stale ? ' stale' : ''}`}
       title={age == null ? 'waiting for data' : `data ${Math.round(age)}s old`}>
       {stale ? 'STALE' : 'LIVE'}
     </span>
@@ -197,6 +197,9 @@ export default function App() {
         <LivePill snap={s} />
         {!s && snap.error && (
           <span className="modes crit">collector unreachable ({String(snap.error.message || snap.error)}) — retrying</span>)}
+        <span className="right">
+          <span id="clock">{new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        </span>
         <button id="themeBtn" title="Toggle light / dark mode"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
           <i className={`ph ${theme === 'dark' ? 'ph-moon' : 'ph-sun'}`}></i>
@@ -204,12 +207,6 @@ export default function App() {
         <button id="sysBtn" title="System info & debug" onClick={() => setModal({ kind: 'sys' })}>
           <i className="ph ph-info"></i>
         </button>
-        <span className="right">
-          <span id="clock">{new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>{' '}
-          <span id="clockAge" className="small">
-            {s?.cache_age_s != null ? `data ${Math.round(s.cache_age_s)}s old${s.refreshing ? ' (refreshing…)' : ''}` : ''}
-          </span>{' '}· <a href="/api/snapshot" style={{ color: 'inherit' }}>JSON</a>
-        </span>
       </header>
       <main className="layout">
         <aside className="col side left" aria-label="Left panel">

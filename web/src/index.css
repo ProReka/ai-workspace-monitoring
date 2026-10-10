@@ -113,6 +113,9 @@ th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: upp
 .pill.muted { color: var(--muted); }
 .pill.working { color: #e8830c; border-color: #e8830c; animation: pulse 1.6s infinite; }
 [data-theme="light"] .pill.working { color: #b25e09; border-color: #b25e09; }
+.pill.live { color: var(--ok); border-color: var(--ok); animation: pulse 2s infinite; }
+.pill.live.stale { color: var(--muted); animation: none; }
+[data-theme="light"] .pill.working { color: #b25e09; border-color: #b25e09; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .crit { color: var(--crit); }
 .pill.ok { border-color: var(--ok); } .pill.warn { border-color: var(--warn); } .pill.crit { border-color: var(--crit); }
 .bar { height: 8px; background: var(--panel2); border: 1px solid var(--border); border-radius: 0; overflow: hidden; min-width: 120px; }
