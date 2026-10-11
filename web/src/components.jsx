@@ -133,7 +133,9 @@ export function MiniSpark({ spark, ts }) {
   const toks = cells.map((c) => c[1] || 0);
   const mx = Math.max(1, ...vals);
   const step = W / Math.max(1, vals.length - 1);
-  const pts = vals.map((v, i) => `${(i * step).toFixed(1)},${(H - 2 - (v / mx) * (H - 4)).toFixed(1)}`).join(' ');
+  const y = vals.map((v) => (H - 2 - (v / mx) * (H - 4)).toFixed(1));
+  const line = y.map((yy, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)},${yy}`).join(' ');
+  const area = `${line} L${W},${H} L0,${H} Z`;
   const tot = vals.reduce((n, v) => n + v, 0);
   const tok = toks.reduce((n, v) => n + v, 0);
   const t0 = ts ? new Date((ts - 3600) * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -141,7 +143,8 @@ export function MiniSpark({ spark, ts }) {
   return (
     <span className="heartbeat inline" title={`tasks per 5-min block · last 60 min (${t0} → ${t1}): ${tot} task${tot === 1 ? '' : 's'} · ${big(tok)} tokens`}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-        <polyline points={pts} fill="none" stroke="var(--ok)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={area} fill="var(--ok)" opacity="0.22" />
+        <path d={line} fill="none" stroke="var(--ok)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
     </span>
   );
@@ -437,30 +440,35 @@ export function StreamPanel({ live, now }) {
   };
   const act = live.active || [];
   const recent = live.recent || [];
+  const feed = [
+    ...act.map((a, i) => ({
+      key: 'a:' + a.model + '|' + a.provider + '|' + a.account,
+      icon: <span className="pulse-ic"><i className="ph ph-gear-six"></i></span>,
+      model: a.model, sub: `${a.provider}${a.account ? ' · ' + a.account : ''}`,
+      toks: <span className="small mono toks" title="still running">—</span>,
+      time: <span className="small ttime mono">in flight{a.count > 1 ? ' ×' + a.count : ''}</span>,
+      live: true,
+    })),
+    ...recent.map((q) => ({
+      key: 'r:' + q.ts + '|' + q.model + '|' + q.in_tok,
+      icon: <i className={`ph ${q.status === 'ok' ? 'ph-check-circle ok' : 'ph-x-circle crit'}`}></i>,
+      model: q.model, sub: q.provider,
+      toks: <span className="small mono toks" title={`${big(q.in_tok)} in / ${big(q.out_tok)} out tokens`}>↓{big(q.in_tok)} ↑{big(q.out_tok)}</span>,
+      toksTitle: '',
+      time: <span className="small ttime" title={q.ts || ''}><i className="ph ph-clock"></i> {rel(q.ts, now)}</span>,
+      live: false,
+    })),
+  ];
   return (
     <>
-      {!live.ok ? null : act.length ? (
-          <ul className="rows">
-            {act.map((a, i) => (
-              <li className={`row frow liveact${mark('a:' + a.model + '|' + a.provider + '|' + a.account)}`} key={i}>
-                <span className="pulse-ic"><i className="ph ph-gear-six"></i></span>
-                <span className="ell"><b className="mono">{a.model}</b>
-                  <span className="small"> → {a.provider}{a.account ? ' · ' + a.account : ''}</span></span>
-                <span className="small mono">in flight{a.count > 1 ? ' ×' + a.count : ''}</span>
-              </li>))}
-          </ul>
-        ) : null}
-      <ul className="rows" style={{ marginTop: 6 }}>
-        {recent.map((q, i) => (
-          <li className={`row frow${mark('r:' + q.ts + '|' + q.model + '|' + q.in_tok)}`} key={i}>
-            <i className={`ph ${q.status === 'ok' ? 'ph-check-circle ok' : 'ph-x-circle crit'}`}></i>
-            <span className="ell"><b className="mono">{q.model}</b>
-              <span className="small"> → {q.provider}</span></span>
-            <span className="small mono" title={`${big(q.in_tok)} in / ${big(q.out_tok)} out tokens`}>
-              ↓{big(q.in_tok)} ↑{big(q.out_tok)}</span>
-            <span className="small" title={q.ts || ''}>
-              <i className="ph ph-clock"></i> {rel(q.ts, now)}
-            </span>
+      <ul className="rows streamfeed">
+        {feed.map((f, i) => (
+          <li className={`row frow${f.live ? ' liveact' : ''}${mark(f.key)}`} key={f.key + ':' + i}>
+            {f.icon}
+            <span className="ell"><b className="mono">{f.model}</b>
+              <span className="small"> → {f.sub}</span></span>
+            {f.toks}
+            {f.time}
           </li>))}
       </ul>
       <ul className="rows" style={{ marginTop: 6 }}>
@@ -557,9 +565,13 @@ export function QuotaSpark({ hist, provider, account, window }) {
   const d = vals.map((v, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`).join(' ');
   const first = vals[0], last = vals[vals.length - 1];
   const trend = last < first ? 'down' : last > first ? 'up' : 'flat';
+  const area = `${d} L${w},${h} L0,${h} Z`;
   return (
     <span className="sparkline" title={`quota trend 24h: ${first}% → ${last}%`}>
-      <svg width={w} height={h}><path d={d} fill="none" stroke="var(--accent)" strokeWidth="1.5" /></svg>
+      <svg width={w} height={h}>
+        <path d={area} fill="var(--accent)" opacity="0.22" />
+        <path d={d} fill="none" stroke="var(--accent)" strokeWidth="1.5" />
+      </svg>
       <span className="small">{trend === 'down' ? <i className="ph ph-trend-down crit"></i> : trend === 'up' ? <i className="ph ph-trend-up ok"></i> : <i className="ph ph-minus small"></i>}</span>
     </span>
   );

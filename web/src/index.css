@@ -244,6 +244,8 @@ span.mention { color: var(--text); }
   background: repeating-linear-gradient(115deg, var(--ok), var(--ok) 6px, transparent 6px, transparent 12px);
   background-size: 200% 100%; animation: slideside 1s linear infinite; }
 @keyframes slideside { to { background-position: -17px 0; } }
+.streamfeed .toks { width: 92px; flex: none; text-align: right; }
+.streamfeed .ttime { width: 76px; flex: none; text-align: right; }
 .spark { display: flex; gap: 2px; align-items: flex-end; height: 34px; margin-top: 6px;
   padding: 4px 6px; background: var(--panel2); }
 .spark i { flex: 1; background: var(--accent); min-height: 2px; opacity: .85; }
