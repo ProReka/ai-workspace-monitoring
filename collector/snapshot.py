@@ -69,6 +69,7 @@ def snapshot() -> dict:
         n["ts"] = time.time()
 
     meta = {
+        "app_version": config.__version__,
         "company": config.COMPANY_NAME,
         "workspace": multica.workspace_name(),
         "workspace_id": config.MULTICA_WORKSPACE,

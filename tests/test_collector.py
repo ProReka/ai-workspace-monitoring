@@ -98,6 +98,7 @@ class SnapshotMockTest(unittest.TestCase):
             self.assertEqual(s["modes"], {"multica": "mock", "router": "mock", "ecs": "mock"})
             for key in ("multica", "router", "ecs", "alerts", "notices", "meta", "thresholds"):
                 self.assertIn(key, s)
+            self.assertIn("app_version", s["meta"])
 
 
 class StoreTest(unittest.TestCase):

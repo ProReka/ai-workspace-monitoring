@@ -2,6 +2,12 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## v0.1.5 — 2026-10-11
+
+- Quota rows show used/total tooltips; accounts without quota data labeled, not blank
+- `app_version` in snapshot meta (know which build a deployment runs)
+- Quota alerts only for active providers (dead ones stay quiet)
+
 ## v0.1.4 — 2026-10-11
 
 - Quota merged per provider (accounts stacked, inactive in disclosure, other windows ticker)

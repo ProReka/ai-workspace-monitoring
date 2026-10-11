@@ -242,15 +242,16 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
         const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
         const cls = !prim ? '' : prim.color === 'red' ? 'hot' : prim.color === 'orange' ? 'mid' : prim.color === 'green' ? 'good' : '';
         const isHot = hot.has(String(c.provider || '').toLowerCase());
+        const usedTxt = prim ? `used ${prim.used ?? '—'}/${prim.total ?? '—'}` : 'no quota data reported';
         return (
           <li className={`row${isHot ? ' liveact' : ''}`} key={c.id} role="button" tabIndex={0}
             aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
-            <span className="ell">
-              <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
+            <span className="ell" title={usedTxt}>
+              <span className="small">{c.account}{prim ? ` · ${prim.label}` : ' · no quota data'}</span>
             </span>
             <span className={`bar ${cls}`} style={{ flex: '1 1 90px', minWidth: 60 }}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
-            <span className="mono">{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
+            <span className="mono" title={usedTxt}>{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
             <span className="small mono" title={prim ? `resets ${prim.reset_in}` : ''}>{prim ? prim.reset_in : '—'}</span>
             <i className="ph ph-caret-right go"></i>
           </li>);
@@ -263,7 +264,7 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
             <Logo provider={g.provider} size={22} routerUrl={routerUrl} />
             <b className={g.accounts.some((c) => hot.has(String(c.provider || '').toLowerCase())) ? 'pname hot' : ''}>{g.provider}</b>
           </div>
-          <ul className="rows">{g.accounts.map(accRow)}</ul>
+          <ul className="rows">{g.accounts.map((c) => accRow(c))}</ul>
         </div>))}
       {off.length > 0 && (
         <details><summary className="small">Inactive ({off.length})</summary>
