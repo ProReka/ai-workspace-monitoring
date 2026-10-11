@@ -131,6 +131,42 @@ def _one_line(s: str, n: int = 220) -> str:
     return " ".join(str(s or "").split())[:n]
 
 
+def _window_hours(label: str) -> float | None:
+    """Infer window length in hours from its label. None when unknowable."""
+    import re
+    low = str(label or "")
+    m = re.search(r"(\d+(?:\.\d+)?)\s*h", low, re.I)
+    if m:
+        return float(m.group(1))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*d", low, re.I)
+    if m:
+        return float(m.group(1)) * 24
+    l = low.lower()
+    if "monthly" in l:
+        return 30 * 24
+    if "weekly" in l or "week" in l:
+        return 7 * 24
+    if "daily" in l or re.search(r"\bday\b", l):
+        return 24
+    return None
+
+
+def _burn_color(remaining: float | None, reset_at: str | None, hours: float | None) -> str:
+    """green = at/above linear estimate, orange = below, red = <=10%, gray = unknown."""
+    if remaining is None:
+        return "gray"
+    if remaining <= 10:
+        return "red"
+    if not hours or not reset_at:
+        return "green" if remaining > 30 else "orange"
+    try:
+        reset_ts = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00")).timestamp()
+    except (ValueError, TypeError):
+        return "green" if remaining > 30 else "orange"
+    expected = max(0.0, min(100.0, (reset_ts - time.time()) / (hours * 3600) * 100))
+    return "green" if remaining >= expected else "orange"
+
+
 def _rel(reset_at: str | None) -> str:
     if not reset_at:
         return "-"
@@ -471,8 +507,10 @@ def _build_quotas(connections: list[dict],
                 except (TypeError, ValueError):
                     rem_f = None
                 reset = q.get("resetAt")
+                hours = _window_hours(label)
                 w = {"label": str(label), "used": q.get("used"), "total": q.get("total"),
-                     "remaining_pct": rem_f, "reset_at": reset, "reset_in": _rel(reset)}
+                     "remaining_pct": rem_f, "reset_at": reset, "reset_in": _rel(reset),
+                     "color": _burn_color(rem_f, reset, hours)}
                 windows.append(w)
                 quotas.append({"provider": provider, "account": account, "window": str(label),
                                "used": q.get("used"), "total": q.get("total"),

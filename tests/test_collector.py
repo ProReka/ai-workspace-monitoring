@@ -45,6 +45,29 @@ class HelpersTest(unittest.TestCase):
         self.assertEqual(multica._kind_label("direct"), "Replying to DM")
         self.assertTrue(multica._kind_label("weird").startswith("Working"))
 
+    def test_burn_color(self):
+        from collector import nine_router as nr
+        import time
+        from datetime import datetime, timezone, timedelta
+        soon = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
+        self.assertEqual(nr._burn_color(0, soon, 5), "red")
+        self.assertEqual(nr._burn_color(10, soon, 5), "red")
+        # 5h window, 3h left (60% expected): 80% -> green, 40% -> orange
+        self.assertEqual(nr._burn_color(80, soon, 5), "green")
+        self.assertEqual(nr._burn_color(40, soon, 5), "orange")
+        self.assertEqual(nr._burn_color(None, soon, 5), "gray")
+        self.assertEqual(nr._burn_color(50, None, 5), "green")
+        self.assertEqual(nr._burn_color(50, soon, None), "green")
+
+    def test_window_hours(self):
+        from collector import nine_router as nr
+        self.assertEqual(nr._window_hours("session (5h)"), 5)
+        self.assertEqual(nr._window_hours("weekly (7d)"), 7 * 24)
+        self.assertEqual(nr._window_hours("gemini_weekly"), 7 * 24)
+        self.assertEqual(nr._window_hours("Monthly"), 30 * 24)
+        self.assertEqual(nr._window_hours("Rolling"), None)
+        self.assertEqual(nr._window_hours("session"), None)
+
 
 class ConfigTest(unittest.TestCase):
     def test_neutral_defaults(self):

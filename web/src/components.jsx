@@ -240,7 +240,7 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
         const wins = c.windows || [];
         const prim = wins.find((w) => w.label === c.primary) || wins[0];
         const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
-        const cls = isNaN(pv) ? '' : pv <= 10 ? 'hot' : pv <= 30 ? 'mid' : '';
+        const cls = !prim ? '' : prim.color === 'red' ? 'hot' : prim.color === 'orange' ? 'mid' : prim.color === 'green' ? 'good' : '';
         const isHot = hot.has(String(c.provider || '').toLowerCase());
         return (
           <li className={`row${isHot ? ' liveact' : ''}`} key={c.id} role="button" tabIndex={0}
@@ -251,11 +251,7 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
             </span>
             <span className={`bar ${cls}`} style={{ flex: '1 1 90px', minWidth: 60 }}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
             <span className="mono">{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
-            <span className="small mono" title={prim ? `resets ${prim.reset_in}` : ''}>
-              <i className="ph ph-clock"></i> {prim ? prim.reset_in : '—'}</span>
-            {(c.last_error || '') !== ''
-              ? <i className="ph ph-warning warn" title="has error — click for details"></i>
-              : <i className="ph ph-check-circle ok"></i>}
+            <span className="small mono" title={prim ? `resets ${prim.reset_in}` : ''}>{prim ? prim.reset_in : '—'}</span>
             <i className="ph ph-caret-right go"></i>
           </li>);
   };
@@ -311,13 +307,28 @@ export function ComboList({ snap, routerUrl, onCombo }) {
       {combos.map((c) => {
         const v = c.verdict || 'unknown';
         const [dc, di] = dot[v] || dot.unknown;
+        const chain = c.chain || [];
+        const col = { ok: 'var(--ok)', low: 'var(--warn)', exhausted: 'var(--crit)',
+          error: 'var(--crit)', inactive: 'var(--crit)', unknown: 'var(--muted)' };
+        const first = chain.find((l) => String(l.link || '').includes('/'));
+        const prov = first ? String(first.link).split('/')[0] : '';
         return (
           <li className="row" key={c.name} role="button" tabIndex={0}
-            aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
+            aria-label={`Combo ${c.name}, ${v}, ${chain.length} fallbacks. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
-            <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
-            <span className="mono ell"><b>{c.name}</b></span>
-            <span className="graph">{healthGraph(c.chain)}</span>
+            <span className="clogo">
+              <Logo provider={prov} size={26} routerUrl={routerUrl} />
+              <span className={`vbadge ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
+            </span>
+            <span className="comboinfo">
+              <b className="mono">{c.name}</b>
+              <span className="fbbar" title={`${chain.length} fallback links — click for details`}>
+                {chain.map((l, j) => (
+                  <i key={j} className={j === chain.length - 1 ? 'last' : ''}
+                    style={{ background: col[l.status] || 'var(--muted)' }}
+                    title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>))}
+              </span>
+            </span>
             <i className="ph ph-caret-right go"></i>
           </li>);
       })}
@@ -689,7 +700,7 @@ export function Modal({ snap, hist, modal, onAgent, onClose }) {
         return (
           <div className="win" key={w.label}>
             <div className="small"><b>{w.label}</b> <QuotaSpark hist={hist} provider={c.provider} account={c.account} window={w.label} /></div>
-            <div className={`bar ${isNaN(pct) ? '' : pct <= 10 ? 'hot' : pct <= 30 ? 'mid' : ''}`}>
+            <div className={`bar ${w.color === 'red' ? 'hot' : w.color === 'orange' ? 'mid' : w.color === 'green' ? 'good' : ''}`}>
               <i style={{ width: `${isNaN(pct) ? 0 : pct}%` }}></i></div>
             <div className="small mono">{isNaN(pct) ? '—' : `${pct}% left · used ${big(w.used)}/${big(w.total)}`} · resets {w.reset_in}</div>
           </div>);
