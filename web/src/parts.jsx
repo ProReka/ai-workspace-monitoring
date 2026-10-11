@@ -1,7 +1,10 @@
 import { short } from './fmt.js';
 
+const LOGO_ALIAS = { 'opencode-go': 'opencode', 'codebuddy-intl': 'codebuddy' };
+
 export function Logo({ provider, size = 16, routerUrl }) {
-  const p = String(provider || '').toLowerCase().trim();
+  const raw = String(provider || '').toLowerCase().trim();
+  const p = LOGO_ALIAS[raw] || raw;
   const init = (p || '?')[0].toUpperCase();
   const box = { width: size, height: size };
   const local = `providers/${encodeURIComponent(p)}.png`;

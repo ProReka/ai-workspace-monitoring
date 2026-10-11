@@ -271,6 +271,24 @@ const LINK_ICON = {
   ok: 'ph-check-circle ok', low: 'ph-warning warn', exhausted: 'ph-x-circle crit',
   error: 'ph-x-circle crit', inactive: 'ph-minus-circle crit', unknown: 'ph-question',
 };
+const GRAPH_CAP = 8;
+
+export function healthGraph(chain, cap = GRAPH_CAP) {
+  const list = chain || [];
+  const shown = list.slice(0, cap);
+  const rest = list.length - shown.length;
+  return (
+    <>
+      {shown.map((l, i) => (
+        <span key={i}>
+          {i ? <i className="ph ph-arrow-right small"></i> : null}
+          <i className={`ph ${LINK_ICON[l.status] || 'ph-question'}`}
+            title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>
+        </span>))}
+      {rest > 0 && <span className="small" title={`${rest} more links — open for full chain`}>+{rest}</span>}
+    </>
+  );
+}
 
 export function ComboList({ snap, onCombo }) {
   const combos = snap.router.combos || [];

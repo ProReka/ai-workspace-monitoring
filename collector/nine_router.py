@@ -127,6 +127,10 @@ def _get(client: httpx.Client, base: str, path: str, token: str | None,
         return r.status_code, None
 
 
+def _one_line(s: str, n: int = 220) -> str:
+    return " ".join(str(s or "").split())[:n]
+
+
 def _rel(reset_at: str | None) -> str:
     if not reset_at:
         return "-"
@@ -137,9 +141,14 @@ def _rel(reset_at: str | None) -> str:
     delta = ts - time.time()
     if delta <= 0:
         return "now"
-    h, rem = divmod(int(delta), 3600)
-    m = rem // 60
-    return f"{h}h {m}m" if h else f"{m} min"
+    m, rem = divmod(int(delta), 60)
+    h, m = divmod(m, 60)
+    if h >= 48:
+        d, h = divmod(h, 24)
+        return f"{d}d {h}h"
+    if h:
+        return f"{h}h {m}m"
+    return f"{m} min"
 
 
 # --- collect ---------------------------------------------------------------
@@ -468,7 +477,7 @@ def _build_quotas(connections: list[dict],
                 quotas.append({"provider": provider, "account": account, "window": str(label),
                                "used": q.get("used"), "total": q.get("total"),
                                "remaining_pct": rem_f, "reset": w["reset_in"],
-                               "status": tstat, "last_error": err[:160]})
+                               "status": tstat, "last_error": _one_line(err, 160)})
                 if rem_f is not None and rem_f <= config.QUOTA_WARN_PCT:
                     alerts.append({"level": "warn", "source": "9router",
                                    "msg": f"{provider} ({account}) {label}: {rem_f:.0f}% left — resets {w['reset_in']}"})
@@ -488,7 +497,7 @@ def _build_quotas(connections: list[dict],
                     return float("inf")
             primary = min(windows, key=_reset_ts)["label"]
         conns.append({"id": cid, "provider": provider, "account": account,
-                      "isActive": active, "testStatus": tstat, "last_error": err[:220],
+                      "isActive": active, "testStatus": tstat, "last_error": _one_line(err),
                       "plan": (usage.get("plan") if isinstance(usage, dict) else None),
                       "windows": windows, "worst_remaining": worst,
                       "primary": primary, "usage_ok": usage is not None})
@@ -497,7 +506,7 @@ def _build_quotas(connections: list[dict],
                            "msg": f"{provider} ({account}): usage unreadable (endpoint failed) — quota unknown"})
         if err or tstat.lower() in ("error", "failed", "down"):
             alerts.append({"level": "crit", "source": "9router",
-                           "msg": f"{provider} ({account}): {tstat} {err}".strip()})
+                           "msg": _one_line(f"{provider} ({account}): {tstat} {err}".strip(), 300)})
     return conns, quotas, alerts
 
 
