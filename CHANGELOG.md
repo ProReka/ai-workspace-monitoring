@@ -2,7 +2,17 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
-## Unreleased
+## v0.1.1 — 2026-10-11
+
+- Frontend rewritten in React + Vite (1s clock/elapsed ticker, keyed lists, no remount flicker)
+- Live LLM traffic: usage ranges Today/24H/7D/30D (mirrors 9Router), provider pie + routing,
+  per-model rates, in-flight feed, per-key usage, realtime area chart
+- Agent cards: status line, 60-min heartbeat sparkline, current task + elapsed ticker,
+  compact icon load indicators; timeline + profile + ErrBlock in modals
+- IDE layout: push sidebars, resizable panels, draggable bottom dock, viewport-locked canvas
+- Command-center polish: sharp corners, Phosphor icons, light/dark themes, modals everywhere
+- Production hardening: CLI auto-login, cookie 0600, log rotation, `DATA_DIR` override,
+  render isolation, reduced-motion support
 
 ## v0.1.0 — 2026-10-11
 
