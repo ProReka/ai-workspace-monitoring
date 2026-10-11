@@ -304,20 +304,24 @@ export function ComboList({ snap, onCombo }) {
       {combos.map((c) => {
         const v = c.verdict || 'unknown';
         const [dc, di] = dot[v] || dot.unknown;
+        const chain = c.chain || [];
+        const col = { ok: 'var(--ok)', low: 'var(--warn)', exhausted: 'var(--crit)',
+          error: 'var(--crit)', inactive: 'var(--crit)', unknown: 'var(--muted)' };
         return (
           <li className="row" key={c.name} role="button" tabIndex={0}
-            aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
+            aria-label={`Combo ${c.name}, ${v}, ${chain.length} fallbacks. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
             <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
-            <span className="mono ell"><b>{c.name}</b></span>
-            <span className="graph">
-              {(c.chain || []).map((l, j) => (
-                <span key={j}>
-                  {j ? <i className="ph ph-arrow-right small"></i> : null}
-                  <i className={`ph ${LINK_ICON[l.status] || 'ph-question'}`}
-                    title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>
-                </span>))}
+            <span className="comboinfo">
+              <b className="mono">{c.name}</b>
+              <span className="fbbar" title={`${chain.length} fallback links — click for details`}>
+                {chain.map((l, j) => (
+                  <i key={j} className={j === chain.length - 1 ? 'last' : ''}
+                    style={{ background: col[l.status] || 'var(--muted)' }}
+                    title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>))}
+              </span>
             </span>
+            <i className="ph ph-caret-right go"></i>
             <i className="ph ph-caret-right go"></i>
           </li>);
       })}
