@@ -13,6 +13,27 @@ nohup ./.venv/bin/python -m collector.main > data/server.log 2>&1 < /dev/null & 
 
 Or `docker compose up --build` (needs `.env`; Multica adapter needs CLI — mock otherwise).
 
+## Dokploy (+ Traefik)
+
+Image: `ghcr.io/proreka/ai-workspace-monitoring:0.1.0`, container port `8080`.
+Traefik Host-rule + https redirect, as usual — nothing special required.
+
+Env (Dokploy → Environment, values are literal — **no quotes**):
+
+| Key | Notes |
+|---|---|
+| `MULTICA_TOKEN` / `MULTICA_WORKSPACE` | CLI auto-logs in at container start |
+| `KNOWN_DAEMONS` | comma-separated daemon IDs, or empty |
+| `NINEROUTER_URL` | **Must be reachable from the container.** Internal Docker hostnames of *other* Dokploy apps do NOT resolve (separate networks) — use the **public** 9Router URL (`https://…`) instead |
+| `NINEROUTER_PASSWORD` | **Required.** Dashboard login for quota/combo/usage (cookie session, auto-refreshed). Empty = router stays dark |
+| `NINEROUTER_KEY` | Optional (only cross-checks `/v1/models`) |
+| `COMPANY_NAME` | Header white-label, no quotes |
+| `PORT=8080`, `REFRESH_S=60` | |
+
+Check container logs after deploy: the first snapshot prints
+`snapshot modes={...}` plus a hint line per non-live source.
+Optional: mount a volume at `/app/data` to keep history + session across redeploys.
+
 ## Env
 
 `MULTICA_TOKEN, MULTICA_WORKSPACE[, MULTICA_WORKSPACE_NAME], NINEROUTER_URL,

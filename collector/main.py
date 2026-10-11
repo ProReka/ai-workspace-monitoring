@@ -60,10 +60,29 @@ def _update() -> None:
 
 
 def _loop() -> None:
+    first = True
     while True:
         with _lock:
             _cache["refreshing"] = True
         _update()
+        if first:
+            first = False
+            try:
+                import logging
+                d = (_cache["data"] or {})
+                modes = d.get("modes", {})
+                logging.getLogger("uvicorn").warning(
+                    "office-visualizer snapshot modes=%s company=%s",
+                    modes, (d.get("meta") or {}).get("company"))
+                if (d.get("router") or {}).get("mode") != "live":
+                    logging.getLogger("uvicorn").warning(
+                        "9Router not live: set NINEROUTER_URL reachable from this "
+                        "container + NINEROUTER_PASSWORD (dashboard login)")
+                if (d.get("multica") or {}).get("mode") != "live":
+                    logging.getLogger("uvicorn").warning(
+                        "Multica not live: set MULTICA_TOKEN (+ install CLI - already in image)")
+            except Exception:
+                pass
         time.sleep(REFRESH_S)
 
 
