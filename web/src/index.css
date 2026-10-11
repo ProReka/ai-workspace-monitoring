@@ -126,8 +126,17 @@ th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: upp
 tr.stale td { opacity: .55; }
 .cdot { width: 20px; height: 20px; border-radius: 50%; flex: none;
   display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; }
-.cdot.ok { background: var(--ok); } .cdot.warn { background: var(--warn); }
-.cdot.crit { background: var(--crit); } .cdot.mut { background: var(--muted); }
+.clogo { position: relative; flex: none; width: 30px; height: 30px; }
+.clogo .vbadge { position: absolute; right: -4px; top: -4px; width: 15px; height: 15px;
+  border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #fff; border: 1px solid var(--panel); }
+.clogo .vbadge.ok { background: var(--ok); } .clogo .vbadge.warn { background: var(--warn); }
+.clogo .vbadge.crit { background: var(--crit); } .clogo .vbadge.mut { background: var(--muted); }
+.provgroup { margin-bottom: 8px; }
+.provhead { display: flex; gap: 8px; align-items: center; padding: 4px 2px; }
+.provhead .ticker { margin-left: auto; }
+.ticker { display: inline-block; animation: tickfade 0.3s ease; }
+@keyframes tickfade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 .comboinfo { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .comboinfo b { font-size: 12px; }
 .fbbar { display: flex; gap: 2px; height: 4px; }
@@ -307,7 +316,7 @@ ul.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
   border-bottom: 1px solid var(--border); min-width: 0; border-radius: var(--radius-sm);
   flex-wrap: nowrap; white-space: nowrap; text-align: left; justify-content: flex-start; }
 .row > span { flex: none; }
-.row > span.ell, .row > span.grow { flex: 1 1 auto; }
+.row > span.ell, .row > span.grow, .row > span.comboinfo, .row > span.pinfo { flex: 1 1 auto; }
 .row .bar { flex: 1 1 auto; min-width: 40px; }
 .row:last-child { border-bottom: none; }
 .row[data-conn], .row[data-combo], .row[data-ecs] { cursor: pointer; }

@@ -1,6 +1,11 @@
 import { short } from './fmt.js';
 
-const LOGO_ALIAS = { 'opencode-go': 'opencode', 'codebuddy-intl': 'codebuddy' };
+const LOGO_ALIAS = {
+  'opencode-go': 'opencode', 'codebuddy-intl': 'codebuddy',
+  ag: 'antigravity', oc: 'opencode', ocg: 'opencode', cx: 'codex', cc: 'claude',
+  ollama: 'ollama', openrouter: 'openrouter', nvidia: 'nvidia', mmf: 'mmf',
+  commandcode: 'commandcode', anthropic: 'anthropic', codex: 'codex',
+};
 
 function hueOf(s) {
   let h = 0;

@@ -2,6 +2,14 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## v0.1.4 — 2026-10-11
+
+- Quota merged per provider (accounts stacked, inactive in disclosure, other windows ticker)
+- Combo rows: provider icon + verdict badge overlay + full-width fallback bar
+- 22 provider logos bundled (local → router → colored initial fallback chain)
+- Alerts only for active providers; countdowns in days; compact capped notifications
+- `KNOWN_DAEMONS` env, neutral OSS defaults, ECS explicitly optional
+
 ## v0.1.3 — 2026-10-11
 
 - Provider rows: full-height icon + stacked info, inactive providers in disclosure

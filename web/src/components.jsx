@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { agoShort, big, fmtDur, kindIcon, short, statusOf, timeHM, fullDT } from './fmt.js';
 import { Avatar, IssueRef, Logo, Mentions } from './parts.jsx';
 
@@ -230,38 +230,46 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
   const conns = [...(snap.router.connections || [])].sort((x, y) => y.isActive - x.isActive);
   const on = conns.filter((c) => c.isActive);
   const off = conns.filter((c) => !c.isActive);
-  const row = (c, i) => {
+  const groups = [];
+  for (const c of on) {
+    let g = groups.find((x) => x.provider === c.provider);
+    if (!g) { g = { provider: c.provider, accounts: [] }; groups.push(g); }
+    g.accounts.push(c);
+  }
+  const accRow = (c) => {
         const wins = c.windows || [];
         const prim = wins.find((w) => w.label === c.primary) || wins[0];
         const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
         const cls = isNaN(pv) ? '' : pv <= 10 ? 'hot' : pv <= 30 ? 'mid' : '';
-        const isHot = c.isActive && hot.has(String(c.provider || '').toLowerCase());
+        const isHot = hot.has(String(c.provider || '').toLowerCase());
         return (
-          <li className={`row prov${isHot ? ' liveact' : ''}`} key={c.id || i} role="button" tabIndex={0}
+          <li className={`row${isHot ? ' liveact' : ''}`} key={c.id} role="button" tabIndex={0}
             aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
-            <span className="picon"><Logo provider={c.provider} size={30} routerUrl={routerUrl} /></span>
-            <span className="pinfo">
-              <span className="pline">
-                <b>{c.provider}</b>
-                <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
-                <span className="mono">{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
-                {(c.last_error || '') !== ''
-                  ? <i className="ph ph-warning warn" title="has error — click for details"></i>
-                  : <i className="ph ph-check-circle ok"></i>}
-                <i className="ph ph-caret-right go"></i>
-              </span>
-              <span className={`bar ${cls}`}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
-              {wins.filter((w) => w.label !== c.primary).map((w) => (
-                <span className="small mono" key={w.label}>
-                  {w.label}: {w.remaining_pct == null ? '—' : `${w.remaining_pct}% left · resets ${w.reset_in}`}
-                </span>))}
+            <span className="ell">
+              <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
+              <span className="mono" style={{ marginLeft: 6 }}>{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
+              {(c.last_error || '') !== ''
+                ? <i className="ph ph-warning warn" title="has error — click for details"></i>
+                : <i className="ph ph-check-circle ok"></i>}
             </span>
+            <span className={`bar ${cls}`} style={{ flex: '1 1 90px', minWidth: 60 }}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
+            <span className="small mono" title={prim ? `resets ${prim.reset_in}` : ''}>
+              <i className="ph ph-clock"></i> {prim ? prim.reset_in : '—'}</span>
+            <i className="ph ph-caret-right go"></i>
           </li>);
   };
   return (
     <>
-      <ul className="rows">{on.map(row)}</ul>
+      {groups.map((g) => (
+        <div className="provgroup" key={g.provider}>
+          <div className="provhead">
+            <Logo provider={g.provider} size={22} routerUrl={routerUrl} />
+            <b>{g.provider}</b>
+            <Ticker items={g.accounts.flatMap((c) => (c.windows || []).map((w) => `${w.label}: ${w.remaining_pct == null ? '—' : w.remaining_pct + '% · ' + w.reset_in}`))} />
+          </div>
+          <ul className="rows">{g.accounts.map(accRow)}</ul>
+        </div>))}
       {off.length > 0 && (
         <details><summary className="small">Inactive ({off.length})</summary>
           <ul className="rows">
@@ -274,6 +282,18 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
         </details>)}
     </>
   );
+}
+
+export function Ticker({ items, ms = 3000 }) {
+  const list = (items || []).filter(Boolean);
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (list.length < 2) return;
+    const t = setInterval(() => setI((v) => (v + 1) % list.length), ms);
+    return () => clearInterval(t);
+  }, [list.length, ms]);
+  if (!list.length) return null;
+  return <span className="ticker" key={i} title={list[i]}>{list[i % list.length]}</span>;
 }
 
 const LINK_ICON = {
@@ -296,7 +316,7 @@ export function healthGraph(chain, cap = GRAPH_CAP) {
   );
 }
 
-export function ComboList({ snap, onCombo }) {
+export function ComboList({ snap, routerUrl, onCombo }) {
   const combos = snap.router.combos || [];
   const dot = { ok: ['ok', 'ph-check'], degraded: ['warn', 'ph-minus'], down: ['crit', 'ph-x'], unknown: ['mut', 'ph-question'] };
   return (
@@ -307,11 +327,16 @@ export function ComboList({ snap, onCombo }) {
         const chain = c.chain || [];
         const col = { ok: 'var(--ok)', low: 'var(--warn)', exhausted: 'var(--crit)',
           error: 'var(--crit)', inactive: 'var(--crit)', unknown: 'var(--muted)' };
+        const first = chain.find((l) => String(l.link || '').includes('/'));
+        const prov = first ? String(first.link).split('/')[0] : '';
         return (
           <li className="row" key={c.name} role="button" tabIndex={0}
             aria-label={`Combo ${c.name}, ${v}, ${chain.length} fallbacks. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
-            <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
+            <span className="clogo">
+              <Logo provider={prov} size={26} routerUrl={routerUrl} />
+              <span className={`vbadge ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
+            </span>
             <span className="comboinfo">
               <b className="mono">{c.name}</b>
               <span className="fbbar" title={`${chain.length} fallback links — click for details`}>
@@ -321,7 +346,6 @@ export function ComboList({ snap, onCombo }) {
                     title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>))}
               </span>
             </span>
-            <i className="ph ph-caret-right go"></i>
             <i className="ph ph-caret-right go"></i>
           </li>);
       })}

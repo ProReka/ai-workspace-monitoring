@@ -478,7 +478,7 @@ def _build_quotas(connections: list[dict],
                                "used": q.get("used"), "total": q.get("total"),
                                "remaining_pct": rem_f, "reset": w["reset_in"],
                                "status": tstat, "last_error": _one_line(err, 160)})
-                if rem_f is not None and rem_f <= config.QUOTA_WARN_PCT:
+                if active and rem_f is not None and rem_f <= config.QUOTA_WARN_PCT:
                     alerts.append({"level": "warn", "source": "9router",
                                    "msg": f"{provider} ({account}) {label}: {rem_f:.0f}% left — resets {w['reset_in']}"})
         worst = min((w["remaining_pct"] for w in windows if w["remaining_pct"] is not None),
@@ -504,7 +504,8 @@ def _build_quotas(connections: list[dict],
         if active and usage is None:
             alerts.append({"level": "warn", "source": "9router",
                            "msg": f"{provider} ({account}): usage unreadable (endpoint failed) — quota unknown"})
-        if err or tstat.lower() in ("error", "failed", "down"):
+        # Dead providers stay quiet: quota/error alerts only matter when active.
+        if active and (err or tstat.lower() in ("error", "failed", "down")):
             alerts.append({"level": "crit", "source": "9router",
                            "msg": _one_line(f"{provider} ({account}): {tstat} {err}".strip(), 300)})
     return conns, quotas, alerts

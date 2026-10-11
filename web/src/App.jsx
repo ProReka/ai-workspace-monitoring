@@ -236,7 +236,7 @@ export default function App() {
               <QuotaList snap={s} routerUrl={routerUrl} live={live} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
             </Section>
             <Section id="combos" icon="ph-git-fork" title="combos" resizable>
-              <ComboList snap={s} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
+              <ComboList snap={s} routerUrl={routerUrl} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
             </Section>
             <Section id="runtimes" icon="ph-desktop-tower" title="Runtimes" resizable>
               <RuntimeList snap={s} onRuntime={(r) => setModal({ kind: 'runtime', id: r.id || r.daemon_id })} />
