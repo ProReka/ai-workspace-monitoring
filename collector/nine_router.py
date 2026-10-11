@@ -257,7 +257,8 @@ def _models(base: str) -> object | None:
         return None
 
 
-_prev_live: dict = {"ts": 0.0, "models": {}}
+_prev_by_period: dict[str, dict] = {}
+PERIODS = ("today", "24h", "7d", "30d", "all")
 _nodes_cache: dict = {"ts": 0.0, "map": {}}
 NODES_TTL_S = 300
 
@@ -280,12 +281,14 @@ def _node_names(c: httpx.Client, base: str, token: str | None) -> dict:
     return _nodes_cache["map"]
 
 
-def live_traffic() -> dict:
+def live_traffic(period: str = "all") -> dict:
     """Live LLM traffic from /api/usage/stats with per-model req/min deltas.
 
-    Returns {ok, totals, models[top 8 by rate], dt_s}. Cheap (~1s), cookie auth.
+    period: today | 24h | 7d | 30d | all (mirrors the 9Router usage page).
+    Returns {ok, period, totals, models[top 8 by rate], dt_s}. Cheap (~1s), cookie auth.
     """
-    global _prev_live
+    if period not in PERIODS:
+        period = "all"
     base = (config.NINEROUTER_URL or "").rstrip("/")
     if not base:
         return {"ok": False, "models": [], "totals": {}, "dt_s": 0}
@@ -294,18 +297,21 @@ def live_traffic() -> dict:
         with httpx.Client(follow_redirects=True, timeout=TIMEOUT) as c:
             token = _session_token(base)
             st: dict = {}
-            code, data = _get(c, base, "/api/usage/stats", token, st)
+            code, data = _get(c, base, f"/api/usage/stats?period={period}", token, st)
             if code == 401 and config.NINEROUTER_PASSWORD:
                 token = _login(base)
-                code, data = _get(c, base, "/api/usage/stats", token, st)
+                code, data = _get(c, base, f"/api/usage/stats?period={period}", token, st)
             names = _node_names(c, base, token)
             stream = _stream(c, base, token, names)
     except Exception:
-        return {"ok": False, "models": [], "providers": [], "totals": {}, "dt_s": 0}
+        return {"ok": False, "period": period, "models": [], "providers": [],
+                "totals": {}, "dt_s": 0}
     if code != 200 or not isinstance(data, dict):
-        return {"ok": False, "models": [], "providers": [], "totals": {}, "dt_s": 0}
-    dt = now - _prev_live["ts"] if _prev_live["ts"] else 0.0
-    prev = _prev_live["models"]
+        return {"ok": False, "period": period, "models": [], "providers": [],
+                "totals": {}, "dt_s": 0}
+    slot = _prev_by_period.setdefault(period, {"ts": 0.0, "models": {}})
+    dt = now - slot["ts"] if slot["ts"] else 0.0
+    prev = slot["models"]
     rows = []
     by_model = data.get("byModel", {})
     if isinstance(by_model, dict):
@@ -329,13 +335,13 @@ def live_traffic() -> dict:
                 "last_used": m.get("lastUsed"),
             })
     rows.sort(key=lambda r: (r["req_min"] is None, -(r["req_min"] or 0)))
-    _prev_live = {"ts": now, "models": {
-        r["label"]: {"requests": r["requests"], "pin": 0} for r in rows}}
+    slot["ts"] = now
+    slot["models"] = {r["label"]: {"requests": r["requests"], "pin": 0} for r in rows}
     # store pin for next delta (recompute from current totals below)
     if isinstance(by_model, dict):
         for label, m in by_model.items():
-            if isinstance(m, dict) and label in _prev_live["models"]:
-                _prev_live["models"][label]["pin"] = int(m.get("promptTokens") or 0)
+            if isinstance(m, dict) and label in slot["models"]:
+                slot["models"][label]["pin"] = int(m.get("promptTokens") or 0)
     totals = {k: data.get(k) for k in
               ("totalRequests", "totalPromptTokens", "totalCompletionTokens", "totalCost")}
     providers = []
@@ -353,7 +359,7 @@ def live_traffic() -> dict:
                 "cost": round(float(p.get("cost") or 0), 2),
             })
     providers.sort(key=lambda p: -p["requests"])
-    return {"ok": True, "models": rows[:8], "providers": providers,
+    return {"ok": True, "period": period, "models": rows[:8], "providers": providers,
             "totals": totals, "dt_s": round(dt, 1), **stream}
 
 

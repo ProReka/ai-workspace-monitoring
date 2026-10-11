@@ -11,5 +11,5 @@ async function get(path, timeoutMs = 90000) {
 }
 
 export const fetchSnapshot = () => get('/api/snapshot');
-export const fetchLive = () => get('/api/live', 15000);
+export const fetchLive = (period = 'all') => get('/api/live?period=' + period, 15000);
 export const fetchHistory = (range) => get('/api/history?range=' + range, 20000);

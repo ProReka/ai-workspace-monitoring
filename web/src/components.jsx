@@ -461,6 +461,7 @@ export function StreamPanel({ live, now }) {
   ];
   return (
     <>
+      <LiveChart perMin={live.per_min || []} />
       <ul className="rows streamfeed">
         {feed.map((f, i) => (
           <li className={`row frow${f.live ? ' liveact' : ''}${mark(f.key)}`} key={f.key + ':' + i}>
@@ -471,26 +472,44 @@ export function StreamPanel({ live, now }) {
             {f.time}
           </li>))}
       </ul>
-      <ul className="rows" style={{ marginTop: 6 }}>
-        {(live.by_key || []).map((k) => {
-          const mx = Math.max(1, ...(live.by_key || []).map((x) => x.requests));
-          return (
-            <li className="row" key={k.key}>
-              <span className="ell"><i className="ph ph-key"></i> <b>{k.key}</b></span>
-              <span className="bar" style={{ flex: 1 }}>
-                <i style={{ width: `${Math.round((k.requests / mx) * 100)}%` }}></i></span>
-              <span className="mono" title={`${big(k.in_tok)} in / ${big(k.out_tok)} out tokens`}>{big(k.requests)} req</span>
-            </li>);
-        })}
-      </ul>
-      {(live.per_min || []).length > 0 && (
-        <div className="spark" title="requests per minute, last 10 minutes">
-          {live.per_min.map((v, i) => {
-            const mx = Math.max(1, ...live.per_min);
-            return <i key={i} style={{ height: `${Math.max(8, Math.round((v / mx) * 100))}%` }}></i>;
-          })}
-        </div>)}
     </>
+  );
+}
+
+export function LiveChart({ perMin }) {
+  const vals = perMin || [];
+  if (!vals.length) return null;
+  const W = 300, H = 44;
+  const mx = Math.max(1, ...vals);
+  const step = W / Math.max(1, vals.length - 1);
+  const y = vals.map((v) => (H - 3 - (v / mx) * (H - 8)).toFixed(1));
+  const line = y.map((yy, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)},${yy}`).join(' ');
+  const area = `${line} L${W},${H} L0,${H} Z`;
+  const lx = ((vals.length - 1) * step).toFixed(1), ly = y[y.length - 1];
+  return (
+    <div className="rtchart" title="requests per minute, live">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <path d={area} fill="var(--ok)" opacity="0.2" />
+        <path d={line} fill="none" stroke="var(--ok)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        <circle className="livedot-end" cx={lx} cy={ly} r="3.2" />
+      </svg>
+    </div>
+  );
+}
+
+export function KeyList({ live }) {
+  const keys = live?.by_key || [];
+  if (!live) return <div className="small">Waiting…</div>;
+  return (
+    <ul className="rows">
+      {keys.map((k) => (
+        <li className="row" key={k.key}>
+          <span className="ell"><i className="ph ph-key"></i> <b>{k.key}</b>
+            <span className="small"> · last used {k.last_used ? rel(k.last_used, Date.now()) : '—'}</span></span>
+          <span className="mono" title={`${big(k.in_tok)} in / ${big(k.out_tok)} out tokens`}>
+            {big(k.requests)} req · {big((k.in_tok || 0) + (k.out_tok || 0))} tok</span>
+        </li>))}
+    </ul>
   );
 }
 

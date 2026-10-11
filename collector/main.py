@@ -79,21 +79,24 @@ def api_history(range: str = "week") -> dict:
     return history(range if range in ("day", "week", "month") else "week")
 
 
-_live_cache: dict = {"data": None, "ts": 0.0}
+_live_cache: dict = {}
 LIVE_TTL_S = 10
 
 
 @app.get("/api/live")
-def api_live() -> dict:
+def api_live(period: str = "all") -> dict:
     if MOCK_TOTAL:
         out = dict(fixture("live", {"ok": False}))
         out["age_s"] = 3.0
         return out
-    if time.time() - _live_cache["ts"] > LIVE_TTL_S or not _live_cache["data"]:
-        _live_cache["data"] = live_traffic()
-        _live_cache["ts"] = time.time()
-    out = dict(_live_cache["data"])
-    out["age_s"] = round(time.time() - _live_cache["ts"], 1)
+    if period not in ("today", "24h", "7d", "30d", "all"):
+        period = "all"
+    slot = _live_cache.get(period)
+    if slot is None or time.time() - slot["ts"] > LIVE_TTL_S:
+        slot = {"data": live_traffic(period), "ts": time.time()}
+        _live_cache[period] = slot
+    out = dict(slot["data"])
+    out["age_s"] = round(time.time() - slot["ts"], 1)
     return out
 
 

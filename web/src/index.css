@@ -189,10 +189,10 @@ details summary.small { color: var(--muted); }
 .piecenter { position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; }
 .piecenter b { font-size: 20px; line-height: 1; }
-.piewrap.hot svg { filter: drop-shadow(0 0 8px var(--accent)); animation: piepulse 1.6s ease-in-out infinite; }
+.piewrap.hot svg { filter: none; animation: none; }
 @keyframes piepulse { 0%,100% { filter: drop-shadow(0 0 3px var(--accent)); } 50% { filter: drop-shadow(0 0 12px var(--accent)); } }
 @media (prefers-reduced-motion: reduce) {
-  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar, .pulse-ic .ph, .row.fresh, .row.liveact, .piewrap.hot svg { animation: none; }
+  .agent.st-working, .pill.working, .dot.working, .livedot.busy, .pulsebar, .pulse-ic .ph, .row.fresh, .row.liveact, .piewrap.hot svg, .pname.hot, .streamfeed .row.fresh { animation: none; }
 }
 .alert > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .agent .ahead { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 3px; }
@@ -244,8 +244,16 @@ span.mention { color: var(--text); }
   background: repeating-linear-gradient(115deg, var(--ok), var(--ok) 6px, transparent 6px, transparent 12px);
   background-size: 200% 100%; animation: slideside 1s linear infinite; }
 @keyframes slideside { to { background-position: -17px 0; } }
+.streamfeed .row { height: 30px; overflow: hidden; }
 .streamfeed .toks { width: 92px; flex: none; text-align: right; }
 .streamfeed .ttime { width: 76px; flex: none; text-align: right; }
+.streamfeed .row.fresh { animation: slidedown .35s ease; }
+@keyframes slidedown { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+.pname.hot { color: var(--accent); font-weight: 700; animation: nameglow 1.6s ease-in-out infinite; }
+@keyframes nameglow { 0%,100% { text-shadow: 0 0 0 transparent; } 50% { text-shadow: 0 0 10px var(--accent); } }
+.rtchart { margin-bottom: 6px; }
+.rtchart svg { width: 100%; height: 44px; display: block; }
+.rtchart .livedot-end { fill: var(--ok); animation: pulse 1.2s infinite; }
 .spark { display: flex; gap: 2px; align-items: flex-end; height: 34px; margin-top: 6px;
   padding: 4px 6px; background: var(--panel2); }
 .spark i { flex: 1; background: var(--accent); min-height: 2px; opacity: .85; }

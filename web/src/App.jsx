@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchHistory, fetchLive, fetchSnapshot } from './api.js';
 import { useNow, usePoll, useStored } from './hooks.js';
 import {
-  ComboList, HeatSeg, Heatmap, InfraList, Modal, Notifications, QuotaList,
+  ComboList, HeatSeg, Heatmap, InfraList, KeyList, Modal, Notifications, QuotaList,
   RuntimeList, Section, StaleList, StreamPanel, Tiles, Workspace,
 } from './components.jsx';
 import { Logo } from './parts.jsx';
@@ -63,7 +63,7 @@ function LivePill({ snap }) {
   );
 }
 
-function LiveDock({ live, routerUrl }) {
+function LiveDock({ live, routerUrl, range, onRange }) {
   const [shut, setShut] = useStored('ov-dock', false);
   const [height, setHeight] = useStored('ov-dock-h', 0);
   const t = (live && live.totals) || {};
@@ -111,6 +111,10 @@ function LiveDock({ live, routerUrl }) {
       <div className="dockhead" role="button" tabIndex={0} id="dockHead" aria-expanded={String(!shut)}
         onClick={() => setShut(!shut)}>
         <i className="ph ph-pulse"></i> <b>Live LLM traffic</b>
+        <span className="seg">
+          {[['today', 'Today'], ['24h', '24H'], ['7d', '7D'], ['30d', '30D']].map(([v, l]) => (
+            <button key={v} className={range === v ? 'on' : ''} onClick={(e) => { e.stopPropagation(); onRange(v); }}>{l}</button>))}
+        </span>
         <span className="small">{live && live.ok ? `live · ${Math.round(live.age_s || 0)}s old` : 'unavailable'}</span>
         <span className="small mono">{live && live.ok ? `${big(t.totalRequests)} req · $${Number(t.totalCost || 0).toFixed(2)}` : ''}</span>
         <i className={`ph ${shut ? 'ph-caret-up' : 'ph-caret-down'}`}></i>
@@ -127,12 +131,17 @@ function LiveDock({ live, routerUrl }) {
           <div>
             <ProviderPie providers={live?.providers || []} live={live} />
             <ul className="rows" style={{ marginTop: 6 }}>
-          {(live?.providers || []).map((p) => (
-            <li className="row" key={p.provider}>
-              <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} /> <b>{p.provider}</b></span>
-              <span className="pdot" style={{ background: provColor(p.provider, 0) }} title={`${p.share}% of requests`}></span>
-              <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
-            </li>))}
+              {(live?.providers || []).map((p) => {
+                const hot = (live?.models || []).some((m) => m.provider === p.provider && (m.req_min || 0) > 0)
+                  || (live?.active || []).some((a) => a.provider === p.provider);
+                return (
+                  <li className="row" key={p.provider}>
+                    <span className="ell"><Logo provider={p.provider} size={16} routerUrl={routerUrl} />{' '}
+                      <b className={hot ? 'pname hot' : ''}>{p.provider}</b></span>
+                    <span className="pdot" style={{ background: provColor(p.provider, 0) }} title={`${p.share}% of requests`}></span>
+                    <span className="mono">{p.share}% · {big(p.requests)} req{p.cost ? ` · $${p.cost}` : ''}</span>
+                  </li>);
+              })}
             </ul>
           </div>
           <div>
@@ -157,7 +166,15 @@ function LiveDock({ live, routerUrl }) {
 
 export default function App() {
   const snap = usePoll(fetchSnapshot, 20000);
-  const live = usePoll(fetchLive, 10000);
+  const [lrange, setLrange] = useState('today');
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    const load = () => fetchLive(lrange).then((d) => { if (!dead) setLive(d); }).catch(() => {});
+    load();
+    const t = setInterval(load, 10000);
+    return () => { dead = true; clearInterval(t); };
+  }, [lrange]);
   const [range, setRange] = useState('week');
   const [hist, setHist] = useState(null);
   const [theme, setTheme] = useStored('ov-theme', 'dark');
@@ -216,7 +233,7 @@ export default function App() {
           {s ? (<>
             <section><Tiles snap={s} /></section>
             <Section id="quota" icon="ph-battery-charging" title="LLM quota" resizable>
-              <QuotaList snap={s} routerUrl={routerUrl} live={live.data} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
+              <QuotaList snap={s} routerUrl={routerUrl} live={live} onConn={(c) => setModal({ kind: 'conn', id: (s.router.connections || []).indexOf(c) })} />
             </Section>
             <Section id="combos" icon="ph-git-fork" title="combos" resizable>
               <ComboList snap={s} onCombo={(c) => setModal({ kind: 'combo', id: (s.router.combos || []).indexOf(c) })} />
@@ -249,7 +266,10 @@ export default function App() {
               <Notifications snap={s} />
             </Section>
             <Section id="stream" icon="ph-waves" title="Stream" resizable>
-              <StreamPanel live={live.data} now={now} />
+              <StreamPanel live={live} now={now} />
+            </Section>
+            <Section id="keys" icon="ph-key" title="Keys">
+              <KeyList live={live} />
             </Section>
             <Section id="activity" icon="ph-chart-bar" title="Activity"
               head={<HeatSeg range={range} onRange={setRange} />}>
@@ -257,7 +277,7 @@ export default function App() {
             </Section>
           </>) : <section><div className="small">Loading…</div></section>}
         </aside>
-        <LiveDock live={live.data} routerUrl={routerUrl} />
+        <LiveDock live={live} routerUrl={routerUrl} range={lrange} onRange={setLrange} />
       </main>
       <button id="edgeL" className={`edge${hideL ? '' : ' hidden'}`} title="Show left panel" onClick={() => setHideL(false)}>
         <i className="ph ph-caret-right"></i>
