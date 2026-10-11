@@ -2,6 +2,14 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## v0.1.2 — 2026-10-11
+
+- 9Router without dashboard password now goes live (was wrongly `unconfigured`);
+  locked-out instances still report `unconfigured` with an accurate message
+- Startup probe log (`snapshot modes=` + per-source hints) for container deploys
+- Dokploy deployment guide in `docs/operations.md`
+- `DATA_DIR` override, cookie file 0600, server.log rotation, `REFRESH_S` env
+
 ## v0.1.1 — 2026-10-11
 
 - Frontend rewritten in React + Vite (1s clock/elapsed ticker, keyed lists, no remount flicker)
