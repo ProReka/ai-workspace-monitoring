@@ -248,14 +248,14 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
             <span className="ell">
               <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
-              <span className="mono" style={{ marginLeft: 6 }}>{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
-              {(c.last_error || '') !== ''
-                ? <i className="ph ph-warning warn" title="has error — click for details"></i>
-                : <i className="ph ph-check-circle ok"></i>}
             </span>
             <span className={`bar ${cls}`} style={{ flex: '1 1 90px', minWidth: 60 }}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
+            <span className="mono">{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
             <span className="small mono" title={prim ? `resets ${prim.reset_in}` : ''}>
               <i className="ph ph-clock"></i> {prim ? prim.reset_in : '—'}</span>
+            {(c.last_error || '') !== ''
+              ? <i className="ph ph-warning warn" title="has error — click for details"></i>
+              : <i className="ph ph-check-circle ok"></i>}
             <i className="ph ph-caret-right go"></i>
           </li>);
   };
@@ -265,8 +265,7 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
         <div className="provgroup" key={g.provider}>
           <div className="provhead">
             <Logo provider={g.provider} size={22} routerUrl={routerUrl} />
-            <b>{g.provider}</b>
-            <Ticker items={g.accounts.flatMap((c) => (c.windows || []).map((w) => `${w.label}: ${w.remaining_pct == null ? '—' : w.remaining_pct + '% · ' + w.reset_in}`))} />
+            <b className={g.accounts.some((c) => hot.has(String(c.provider || '').toLowerCase())) ? 'pname hot' : ''}>{g.provider}</b>
           </div>
           <ul className="rows">{g.accounts.map(accRow)}</ul>
         </div>))}
@@ -282,18 +281,6 @@ export function QuotaList({ snap, routerUrl, live, onConn }) {
         </details>)}
     </>
   );
-}
-
-export function Ticker({ items, ms = 3000 }) {
-  const list = (items || []).filter(Boolean);
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (list.length < 2) return;
-    const t = setInterval(() => setI((v) => (v + 1) % list.length), ms);
-    return () => clearInterval(t);
-  }, [list.length, ms]);
-  if (!list.length) return null;
-  return <span className="ticker" key={i} title={list[i]}>{list[i % list.length]}</span>;
 }
 
 const LINK_ICON = {
@@ -324,28 +311,13 @@ export function ComboList({ snap, routerUrl, onCombo }) {
       {combos.map((c) => {
         const v = c.verdict || 'unknown';
         const [dc, di] = dot[v] || dot.unknown;
-        const chain = c.chain || [];
-        const col = { ok: 'var(--ok)', low: 'var(--warn)', exhausted: 'var(--crit)',
-          error: 'var(--crit)', inactive: 'var(--crit)', unknown: 'var(--muted)' };
-        const first = chain.find((l) => String(l.link || '').includes('/'));
-        const prov = first ? String(first.link).split('/')[0] : '';
         return (
           <li className="row" key={c.name} role="button" tabIndex={0}
-            aria-label={`Combo ${c.name}, ${v}, ${chain.length} fallbacks. Activate for details.`}
+            aria-label={`Combo ${c.name}, ${v}. Activate for details.`}
             onClick={() => onCombo(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCombo(c); } }}>
-            <span className="clogo">
-              <Logo provider={prov} size={26} routerUrl={routerUrl} />
-              <span className={`vbadge ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
-            </span>
-            <span className="comboinfo">
-              <b className="mono">{c.name}</b>
-              <span className="fbbar" title={`${chain.length} fallback links — click for details`}>
-                {chain.map((l, j) => (
-                  <i key={j} className={j === chain.length - 1 ? 'last' : ''}
-                    style={{ background: col[l.status] || 'var(--muted)' }}
-                    title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>))}
-              </span>
-            </span>
+            <span className={`cdot ${dc}`} title={`verdict: ${v} — click for chain`}><i className={`ph ${di}`}></i></span>
+            <span className="mono ell"><b>{c.name}</b></span>
+            <span className="graph">{healthGraph(c.chain)}</span>
             <i className="ph ph-caret-right go"></i>
           </li>);
       })}
