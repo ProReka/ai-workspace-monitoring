@@ -228,42 +228,51 @@ export function hotProviders(live) {
 export function QuotaList({ snap, routerUrl, live, onConn }) {
   const hot = hotProviders(live);
   const conns = [...(snap.router.connections || [])].sort((x, y) => y.isActive - x.isActive);
-  return (
-    <ul className="rows">
-      {conns.map((c, i) => {
-        if (!c.isActive) {
-          return (
-            <li className="row stale" key={c.id || i}>
-              <span className="ell"><Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
-              <span className="small"> {c.account}</span></span><span className="pill">OFF</span>
-            </li>);
-        }
+  const on = conns.filter((c) => c.isActive);
+  const off = conns.filter((c) => !c.isActive);
+  const row = (c, i) => {
         const wins = c.windows || [];
         const prim = wins.find((w) => w.label === c.primary) || wins[0];
         const pv = prim ? parseFloat(prim.remaining_pct) : NaN;
         const cls = isNaN(pv) ? '' : pv <= 10 ? 'hot' : pv <= 30 ? 'mid' : '';
         const isHot = c.isActive && hot.has(String(c.provider || '').toLowerCase());
         return (
-          <li className={`row stack${isHot ? ' liveact' : ''}`} key={c.id || i} role="button" tabIndex={0}
+          <li className={`row prov${isHot ? ' liveact' : ''}`} key={c.id || i} role="button" tabIndex={0}
             aria-label={`${c.provider} ${c.account} quota. Activate for details.`}
             onClick={() => onConn(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onConn(c); } }}>
-            <span className="ell" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
-              <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
-              <span className="mono" style={{ marginLeft: 'auto' }}>{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
-              {(c.last_error || '') !== ''
-                ? <i className="ph ph-warning warn" title="has error — click for details"></i>
-                : <i className="ph ph-check-circle ok"></i>}
-              <i className="ph ph-caret-right go"></i>
+            <span className="picon"><Logo provider={c.provider} size={30} routerUrl={routerUrl} /></span>
+            <span className="pinfo">
+              <span className="pline">
+                <b>{c.provider}</b>
+                <span className="small">{c.account}{prim ? ` · ${prim.label}` : ''}</span>
+                <span className="mono">{isNaN(pv) ? '—' : pv.toFixed(0) + '%'}</span>
+                {(c.last_error || '') !== ''
+                  ? <i className="ph ph-warning warn" title="has error — click for details"></i>
+                  : <i className="ph ph-check-circle ok"></i>}
+                <i className="ph ph-caret-right go"></i>
+              </span>
+              <span className={`bar ${cls}`}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
+              {wins.filter((w) => w.label !== c.primary).map((w) => (
+                <span className="small mono" key={w.label}>
+                  {w.label}: {w.remaining_pct == null ? '—' : `${w.remaining_pct}% left · resets ${w.reset_in}`}
+                </span>))}
             </span>
-            <span className={`bar ${cls}`}><i style={{ width: `${isNaN(pv) ? 0 : pv}%` }}></i></span>
-            {wins.filter((w) => w.label !== c.primary).map((w) => (
-              <span className="small mono" key={w.label}>
-                {w.label}: {w.remaining_pct == null ? '—' : `${w.remaining_pct}% left · resets ${w.reset_in}`}
-              </span>))}
           </li>);
-      })}
-    </ul>
+  };
+  return (
+    <>
+      <ul className="rows">{on.map(row)}</ul>
+      {off.length > 0 && (
+        <details><summary className="small">Inactive ({off.length})</summary>
+          <ul className="rows">
+            {off.map((c, i) => (
+              <li className="row stale" key={c.id || i}>
+                <span className="ell"><Logo provider={c.provider} size={16} routerUrl={routerUrl} /> <b>{c.provider}</b>
+                <span className="small"> {c.account}</span></span><span className="pill">OFF</span>
+              </li>))}
+          </ul>
+        </details>)}
+    </>
   );
 }
 
@@ -278,15 +287,12 @@ export function healthGraph(chain, cap = GRAPH_CAP) {
   const shown = list.slice(0, cap);
   const rest = list.length - shown.length;
   return (
-    <>
+    <span className="graph compact">
       {shown.map((l, i) => (
-        <span key={i}>
-          {i ? <i className="ph ph-arrow-right small"></i> : null}
-          <i className={`ph ${LINK_ICON[l.status] || 'ph-question'}`}
-            title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>
-        </span>))}
+        <i key={i} className={`ph ${LINK_ICON[l.status] || 'ph-question'}`}
+          title={`${l.link}: ${l.status} — ${l.detail || ''}`}></i>))}
       {rest > 0 && <span className="small" title={`${rest} more links — open for full chain`}>+{rest}</span>}
-    </>
+    </span>
   );
 }
 

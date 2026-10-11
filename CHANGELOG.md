@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## v0.1.3 — 2026-10-11
+
+- Provider rows: full-height icon + stacked info, inactive providers in disclosure
+- Compact combo health chips (no arrows), colored initial badges for missing logos
+- Countdowns in days, one-line alert sanitizing, compact capped notifications
+- `KNOWN_DAEMONS` env (empty = all known), neutral OSS defaults, ECS optional+explicit
+
 ## v0.1.2 — 2026-10-11
 
 - 9Router without dashboard password now goes live (was wrongly `unconfigured`);

@@ -2,18 +2,25 @@ import { short } from './fmt.js';
 
 const LOGO_ALIAS = { 'opencode-go': 'opencode', 'codebuddy-intl': 'codebuddy' };
 
+function hueOf(s) {
+  let h = 0;
+  for (const ch of String(s || '')) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+}
+
 export function Logo({ provider, size = 16, routerUrl }) {
   const raw = String(provider || '').toLowerCase().trim();
   const p = LOGO_ALIAS[raw] || raw;
   const init = (p || '?')[0].toUpperCase();
   const box = { width: size, height: size };
+  const tint = { '--h': hueOf(p || '?') };
   const local = `providers/${encodeURIComponent(p)}.png`;
   const remote = routerUrl ? `${routerUrl}/providers/${encodeURIComponent(p)}.png` : '';
   if (!p) {
-    return <span className="logobox noimg" style={box}><span className="logoinit">{init}</span></span>;
+    return <span className="logobox noimg" style={{ ...box, ...tint }}><span className="logoinit">{init}</span></span>;
   }
   return (
-    <span className="logobox" style={box} title={p}>
+    <span className="logobox" style={{ ...box, ...tint }} title={p}>
       <img
         width={size - 2} height={size - 2} loading="lazy" alt=""
         src={local}
