@@ -1,6 +1,9 @@
 services:
   office:
+    # Local: builds multi-stage (React UI + Python + Multica CLI).
+    # GHCR: comment `build:` out to run the released image instead.
     build: .
-    ports: ["8080:8080"]
+    image: ghcr.io/proreka/ai-workspace-monitoring:0.1.0
+    ports: ["${PORT:-8080}:8080"]
     env_file: .env
-    volumes: ["./data:/data"]
+    volumes: ["./data:/app/data"]
