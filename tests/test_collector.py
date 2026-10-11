@@ -68,6 +68,17 @@ class HelpersTest(unittest.TestCase):
         self.assertEqual(nr._window_hours("Rolling"), None)
         self.assertEqual(nr._window_hours("session"), None)
 
+    def test_missing_remaining_derived(self):
+        from collector import nine_router as nr
+        conns = [{"id": "c9", "provider": "codex", "name": "A1", "email": None,
+                  "isActive": True, "testStatus": "active",
+                  "lastError": None, "errorCode": None}]
+        usage = {"plan": "plus", "quotas": {
+            "session": {"used": 0, "total": 100, "resetAt": "2030-01-01T00:00:00Z"}}}
+        _, quotas, _ = nr._build_quotas(conns, {"c9": usage})
+        self.assertEqual(len(quotas), 1)
+        self.assertEqual(quotas[0]["remaining_pct"], 100.0)
+
 
 class ConfigTest(unittest.TestCase):
     def test_neutral_defaults(self):

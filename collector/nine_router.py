@@ -506,6 +506,14 @@ def _build_quotas(connections: list[dict],
                     rem_f = float(rem) if rem is not None else None
                 except (TypeError, ValueError):
                     rem_f = None
+                if rem_f is None:
+                    # 9Router doesn't always send remainingPercentage (e.g. Codex):
+                    # derive it exactly like the dashboard does.
+                    try:
+                        u, t = float(q.get("used")), float(q.get("total"))
+                        rem_f = round((t - u) / t * 100, 1) if t > 0 else None
+                    except (TypeError, ValueError):
+                        rem_f = None
                 reset = q.get("resetAt")
                 hours = _window_hours(label)
                 w = {"label": str(label), "used": q.get("used"), "total": q.get("total"),

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 
 def env(name: str, default: str = "") -> str:

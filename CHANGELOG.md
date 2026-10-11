@@ -2,6 +2,11 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## v0.1.6 — 2026-10-11
+
+- Derive `remaining_pct` from used/total when 9Router omits it (e.g. Codex
+  showed "—" while the dashboard correctly shows 100%)
+
 ## v0.1.5 — 2026-10-11
 
 - Quota rows show used/total tooltips; accounts without quota data labeled, not blank
