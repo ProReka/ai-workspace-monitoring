@@ -76,8 +76,8 @@ def _loop() -> None:
                     modes, (d.get("meta") or {}).get("company"))
                 if (d.get("router") or {}).get("mode") != "live":
                     logging.getLogger("uvicorn").warning(
-                        "9Router not live: set NINEROUTER_URL reachable from this "
-                        "container + NINEROUTER_PASSWORD (dashboard login)")
+                        "9Router not live: check NINEROUTER_URL reachability; "
+                        "if dashboard login is enabled, also set NINEROUTER_PASSWORD")
                 if (d.get("multica") or {}).get("mode") != "live":
                     logging.getLogger("uvicorn").warning(
                         "Multica not live: set MULTICA_TOKEN (+ install CLI - already in image)")

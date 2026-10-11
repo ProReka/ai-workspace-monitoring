@@ -158,9 +158,13 @@ def collect() -> dict:
                 # Cookie basi (mis. manual) -> login ulang sekali.
                 token = _login(base)
                 _, auth = _get(c, base, "/api/auth/status", token, statuses)
-            authenticated = bool(isinstance(auth, dict) and auth.get("authenticated"))
+            no_login = isinstance(auth, dict) and auth.get("requireLogin") is False
+            if not no_login:
+                _, settings = _get(c, base, "/api/settings", token, statuses)
+                no_login = isinstance(settings, dict) and settings.get("requireLogin") is False
+            authenticated = bool(isinstance(auth, dict) and auth.get("authenticated")) or no_login
 
-            connections = _connections(c, base, token, statuses) if authenticated else []
+            connections = _connections(c, base, token, statuses)
             usage_map = _usages(base, connections, token, statuses)
             _, combos_raw = _get(c, base, "/api/combos", token, statuses)
             _, nodes_raw = _get(c, base, "/api/provider-nodes", token, statuses)
@@ -170,13 +174,14 @@ def collect() -> dict:
         out["ok"] = False
         return out
 
-    if not authenticated:
+    if not connections and not authenticated:
         return {
             "ok": False, "mode": "unconfigured",
             "connections": [], "quotas": [], "combos": [], "models_count": 0,
             "endpoint_status": statuses, "alerts": [
                 {"level": "crit", "source": "9router",
-                 "msg": "9Router: not authenticated — set NINEROUTER_PASSWORD or NINEROUTER_COOKIE in .env"},
+                 "msg": "9Router: not authenticated and no data — if dashboard login is "
+                        "enabled, set NINEROUTER_PASSWORD or NINEROUTER_COOKIE in .env"},
             ],
             "note": f"auth_status={auth}",
         }
@@ -187,11 +192,11 @@ def collect() -> dict:
     return {
         "ok": True, "mode": "live",
         "version": version if isinstance(version, dict) else {},
-        "authenticated": True,
+        "authenticated": authenticated,
         "connections": conns, "quotas": quotas, "combos": combos,
         "models_count": n_models,
         "endpoint_status": statuses, "alerts": alerts,
-        "note": "",
+        "note": "no dashboard login on 9Router" if no_login else "",
     }
 
 

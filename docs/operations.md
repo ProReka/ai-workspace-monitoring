@@ -24,8 +24,8 @@ Env (Dokploy → Environment, values are literal — **no quotes**):
 |---|---|
 | `MULTICA_TOKEN` / `MULTICA_WORKSPACE` | CLI auto-logs in at container start |
 | `KNOWN_DAEMONS` | comma-separated daemon IDs, or empty |
-| `NINEROUTER_URL` | **Must be reachable from the container.** Internal Docker hostnames of *other* Dokploy apps do NOT resolve (separate networks) — use the **public** 9Router URL (`https://…`) instead |
-| `NINEROUTER_PASSWORD` | **Required.** Dashboard login for quota/combo/usage (cookie session, auto-refreshed). Empty = router stays dark |
+| `NINEROUTER_URL` | **Must be reachable from the container.** Internal Docker hostnames of *other* Dokploy apps do NOT resolve (separate networks) — use the **public** 9Router URL (`https://…`) unless both services share a network |
+| `NINEROUTER_PASSWORD` | Only if the 9Router dashboard login is enabled (cookie session, auto-refreshed). Leave empty when 9Router has no password — data endpoints work without it |
 | `NINEROUTER_KEY` | Optional (only cross-checks `/v1/models`) |
 | `COMPANY_NAME` | Header white-label, no quotes |
 | `PORT=8080`, `REFRESH_S=60` | |

@@ -99,5 +99,64 @@ class StoreTest(unittest.TestCase):
                 self.assertTrue(any("Claude" in q["label"] for q in h["quotas"]))
 
 
+class NoLoginRouterTest(unittest.TestCase):
+    """9Router without dashboard password must still go live."""
+
+    def _run(self, auth):
+        from collector import nine_router as nr
+
+        conns = [{"id": "c1", "provider": "claude", "name": "Account 1",
+                  "email": None, "isActive": True, "testStatus": "active",
+                  "lastError": None, "errorCode": None}]
+        usage = {"plan": "X", "quotas": {
+            "session (5h)": {"used": 10, "total": 100, "remainingPercentage": 90,
+                             "resetAt": "2030-01-01T00:00:00Z"}}}
+
+        locked = auth.get("requireLogin") and not auth.get("authenticated")
+
+        def fake_conns(*a, **k):
+            return [] if locked else conns
+
+        def fake_usage(*a, **k):
+            return {} if locked else {"c1": usage}
+
+        def fake_get(client, base, path, token, statuses):
+            statuses[path] = 200
+            if path == "/api/auth/status":
+                return 200, auth
+            if path == "/api/version":
+                return 200, {"currentVersion": "0.5.95"}
+            if path == "/api/combos":
+                return 200, {"combos": []}
+            return 200, {}
+
+        with mock.patch.dict(os.environ, {"NINEROUTER_URL": "http://x",
+                                          "NINEROUTER_PASSWORD": "",
+                                          "NINEROUTER_COOKIE": "",
+                                          "NINEROUTER_KEY": ""}):
+            import collector.config as config
+            importlib.reload(config)
+            importlib.reload(nr)
+            try:
+                with mock.patch.object(nr, "_get", side_effect=fake_get), \
+                     mock.patch.object(nr, "_session_token", return_value=None), \
+                     mock.patch.object(nr, "_connections", side_effect=fake_conns), \
+                     mock.patch.object(nr, "_usages", side_effect=fake_usage), \
+                     mock.patch.object(nr, "_models", return_value={"data": []}):
+                    return nr.collect()
+            finally:
+                importlib.reload(config)
+                importlib.reload(nr)
+
+    def test_passwordless_goes_live(self):
+        r = self._run({"authenticated": False, "requireLogin": False})
+        self.assertEqual(r["mode"], "live")
+        self.assertEqual(len(r["quotas"]), 1)
+
+    def test_locked_out_stays_unconfigured(self):
+        r = self._run({"authenticated": False, "requireLogin": True})
+        self.assertEqual(r["mode"], "unconfigured")
+
+
 if __name__ == "__main__":
     unittest.main()
