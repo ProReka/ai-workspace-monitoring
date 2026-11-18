@@ -15,7 +15,7 @@ Or `docker compose up --build` (needs `.env`; Multica adapter needs CLI — mock
 
 ## Dokploy (+ Traefik)
 
-Image: `ghcr.io/proreka/ai-workspace-monitoring:0.1.0`, container port `8080`.
+Image: `ghcr.io/proreka/ai-workspace-monitoring:0.1.7`, container port `8080`.
 Traefik Host-rule + https redirect, as usual — nothing special required.
 
 Env (Dokploy → Environment, values are literal — **no quotes**):
