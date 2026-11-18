@@ -371,3 +371,48 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #modal .mrow { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
 #modal .mrow span:first-child { color: var(--muted); }
 .chain-arrow { text-align: center; color: var(--muted); font-size: 11px; }
+/* view mode toggle + 2D office */
+.vmode { display: inline-flex; gap: 0; border: 1px solid var(--border); }
+.vmode button { background: var(--panel); color: var(--muted); border: none; cursor: pointer;
+  font: inherit; font-size: 12px; padding: 2px 8px; display: inline-flex; gap: 4px; align-items: center; }
+.vmode button.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.floor.office-floor { background: var(--ground); display: flex; flex-direction: column; }
+.office { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.office > h2 { padding: 2px 4px; margin: 0 0 4px; }
+.office .oclock { margin-left: auto; color: var(--text); font-size: 12px; }
+.office .ostage { flex: 1; min-height: 0; position: relative; }
+.office svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;
+  font-family: "Press Start 2P", ui-monospace, monospace; }
+.office .wsname { font-family: "Pixelify Sans", "Press Start 2P", ui-monospace, monospace; font-size: 17px; font-weight: 700;
+  fill: #f6d27a; paint-order: stroke; stroke: #5a3a12; stroke-width: 1.5px; letter-spacing: .04em; }
+.office .plate { font-family: "Pixelify Sans", ui-monospace, monospace; font-size: 3.8px; font-weight: 500; fill: #fff;
+  paint-order: stroke; stroke: rgba(40,25,10,.75); stroke-width: 1px; }
+.office .olabel { font-family: "Pixelify Sans", ui-monospace, monospace; font-size: 3.8px; fill: #fff; paint-order: stroke;
+  stroke: rgba(0,0,0,.75); stroke-width: 1.2px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.office .actor:hover .olabel { opacity: 1; }
+.office .zone { font-size: 4px; fill: rgba(40,30,20,.45); letter-spacing: .1em; }
+.office .desk { cursor: pointer; outline: none; }
+.office .desk .hit { stroke: transparent; stroke-width: 1; }
+.office .desk:hover .hit, .office .desk:focus-visible .hit { stroke: var(--accent); stroke-dasharray: 2 2; }
+.office .actor { cursor: pointer; transition-property: transform; transition-timing-function: linear; }
+.office .actor.walking .l1 { animation: ostep .36s steps(1) infinite; }
+.office .actor.walking .l2 { animation: ostep .36s steps(1) infinite reverse; }
+.office .actor.walking .torso { animation: obob .36s steps(1) infinite; }
+.office .actor.typing .a1 { animation: otype .22s steps(1) infinite; }
+.office .actor.typing .a2 { animation: otype .22s steps(1) infinite .11s; }
+.office .scr.s-work .code { animation: oscroll .7s steps(1) infinite; }
+.office .blink { animation: pulse 1.2s steps(2) infinite; }
+.office .saver { animation: osaver 6s steps(6) infinite; }
+@keyframes ostep { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes obob { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes otype { 0% { transform: translateY(0); } 50% { transform: translateY(1.5px); } }
+@keyframes oscroll { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes osaver { 0% { transform: translate(0,0); } 33% { transform: translate(9px,2px); } 66% { transform: translate(4px,4px); } }
+@media (max-width: 700px) {
+  .office { overflow-x: auto; }
+  .office .ostage { flex: none; min-width: 640px; height: 62vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .office .actor { transition: none !important; }
+  .office .actor *, .office .scr * { animation: none !important; }
+}

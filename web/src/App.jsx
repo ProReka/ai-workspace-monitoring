@@ -6,6 +6,7 @@ import {
   RuntimeList, Section, StaleList, StreamPanel, Tiles, Workspace,
 } from './components.jsx';
 import { Logo } from './parts.jsx';
+import Office from './Office.jsx';
 import { big, fmtDur } from './fmt.js';
 
 const PIE_COLORS = ['#26a641', '#e8830c', '#58a6ff', '#a371f7', '#f778ba', '#ffa657'];
@@ -181,6 +182,7 @@ export default function App() {
   const [hideL, setHideL] = useStored('ov-hideL', window.matchMedia('(max-width: 1200px)').matches);
   const [hideR, setHideR] = useStored('ov-hideR', window.matchMedia('(max-width: 1200px)').matches);
   const [modal, setModal] = useState(null);
+  const [view, setView] = useStored('ov-view', 'standard');
   const now = useNow(true);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
@@ -214,6 +216,11 @@ export default function App() {
         <LivePill snap={s} />
         {!s && snap.error && (
           <span className="modes crit">collector unreachable ({String(snap.error.message || snap.error)}) — retrying</span>)}
+        <span className="vmode" role="group" aria-label="View mode">
+          {[['standard', 'ph-squares-four', 'Standard'], ['office', 'ph-game-controller', '2D Office']].map(([v, ic, l]) => (
+            <button key={v} className={view === v ? 'on' : ''} aria-pressed={view === v} onClick={() => setView(v)}>
+              <i className={`ph ${ic}`}></i> {l}</button>))}
+        </span>
         <span className="right">
           <span id="clock">{new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
         </span>
@@ -252,8 +259,10 @@ export default function App() {
           </>) : <section><div className="small">Loading snapshot…</div></section>}
         </aside>
         <section className="col center" aria-label="Workspace">
-          <div className="floor">
-            {s ? <Workspace snap={s} onAgent={openAgent} now={now} /> : <div className="small">Loading agents…</div>}
+          <div className={`floor${view === 'office' ? ' office-floor' : ''}`}>
+            {!s ? <div className="small">Loading agents…</div>
+              : view === 'office' ? <Office snap={s} onAgent={openAgent} now={now} tz={s.meta?.office_tz} />
+                : <Workspace snap={s} onAgent={openAgent} now={now} />}
           </div>
         </section>
         <aside className="col side right" aria-label="Right panel">

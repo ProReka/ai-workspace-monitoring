@@ -61,6 +61,19 @@ def workspace_name() -> str:
     return _WS[:8] if _WS else "?"
 
 
+@functools.lru_cache(maxsize=1)
+def workspace_logo() -> str:
+    """Workspace avatar URL (https only); empty when unset or no CLI/workspace."""
+    if not _WS:
+        return ""
+    try:
+        r = subprocess.run(["multica", "workspace", "get", _WS, "--output", "json"],
+                           capture_output=True, text=True, timeout=20)
+        url = str((json.loads(r.stdout or "{}") or {}).get("avatar_url") or "")
+    except Exception:
+        return ""
+    return url if url.startswith("https://") else ""
+
 def _run_json(cmd: list[str]) -> object | None:
     """Run a multica CLI command and parse JSON stdout; None on failure."""
     try:

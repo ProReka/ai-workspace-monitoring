@@ -73,6 +73,8 @@ def snapshot() -> dict:
         "company": config.COMPANY_NAME,
         "workspace": multica.workspace_name(),
         "workspace_id": config.MULTICA_WORKSPACE,
+        "office_tz": config.OFFICE_TZ,
+        "office_logo": config.OFFICE_LOGO_URL or multica.workspace_logo(),
         "router_url": config.NINEROUTER_URL,
         "router_version": (r.get("version") or {}).get("currentVersion", "?") if isinstance(r, dict) else "?",
         "multica_cli": multica.cli_version(),
