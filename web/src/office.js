@@ -1,11 +1,12 @@
 // Pure helpers for the 2D Office view (layout, routing, schedule, daylight).
 export const TZ_DEFAULT = 'Asia/Jakarta';
-export const M = 26;
 export const CELL_W = 48;
-export const CELL_H = 72;
-export const WALL_H = 44;
-export const LOUNGE_W = 120;
-const POD_GAP = 10;
+export const CELL_H = 70;
+export const WALL_H = 42;
+export const ROOM_W = 126;
+const POD_GAP = 8;
+const OUT_X = 170;
+const OUT_Y = 48;
 const BUCKET_LEISURE = 45;
 const BUCKET_AWAY = 180;
 const HOLD_S = 60;
@@ -20,7 +21,6 @@ export function hash(s) {
 }
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const g = (L, x, y) => ({ x: M + x, y: M + y });
 
 function mix(a, b, t) {
   const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
@@ -60,19 +60,25 @@ export function layout(n) {
   const rows = Math.max(1, Math.ceil(count / cols));
   const deskX = (c) => 10 + c * CELL_W + Math.floor(c / 2) * POD_GAP;
   const deskRight = deskX(cols - 1) + CELL_W;
+  const openRight = deskRight + 18;
   const top = WALL_H + 12;
-  const lx = deskRight + 20;
-  const W = lx + LOUNGE_W + 8;
-  const H = top + Math.max(rows * CELL_H + 80, 260);
-  const gardenW = Math.max(300, W * 0.9);
+  const openBottom = top + rows * CELL_H + 10;
+  const corridorY = openBottom + 22;
+  const W = openRight + ROOM_W + 10;
+  const H = corridorY + 64;
   return {
-    cols, rows, W, H, top, lx, gardenW, deskRight,
-    VW: W + gardenW + 2 * M,
-    VH: H + 2 * M,
+    cols, rows, W, H, top, openRight, deskRight,
+    VW: W + 2 * OUT_X, VH: H + 2 * OUT_Y,
+    BX: OUT_X, BY: OUT_Y,
     aisleX: deskRight + 8,
-    bottomY: H - 14,
-    doorX: W - 10,
-    doorY: H - 30,
+    openBottom, corridorY,
+    roomX: openRight + 8, roomRight: W - 8,
+    pantryY: top, pantryH: 88,
+    loungeY: top + 96,
+    doorX: Math.round(W / 2),
+    pantryDoorY: top + 42,
+    loungeDoorY: top + 132,
+    roomDoorX: openRight + 4,
     desks: Array.from({ length: count }, (_, i) => ({ x: deskX(i % cols), y: top + Math.floor(i / cols) * CELL_H })),
   };
 }
@@ -80,60 +86,77 @@ export function layout(n) {
 export function deskSpot(a, i, L) {
   const d = L.desks[i];
   return { key: 'desk:' + a.agent_id, zone: 'desk', i, id: a.agent_id, pose: 'desk',
-    x: M + d.x + 24, y: M + d.y + 44 };
+    x: L.BX + d.x + 24, y: L.BY + d.y + 44 };
 }
 
 export function indoorSpots(L) {
+  const rx = L.BX + L.roomX;
   return [
-    { key: 'pantry', zone: 'inside', pose: 'cup', x: M + L.lx + 18, y: M + L.top + 34, laneX: L.lx + 6 },
-    { key: 'pantry2', zone: 'inside', pose: 'cup', x: M + L.lx + 76, y: M + L.top + 34, laneX: L.lx + 108 },
-    { key: 'sofa', zone: 'inside', pose: 'sit', x: M + L.lx + 34, y: M + L.top + 106, laneX: L.lx + 6 },
-    { key: 'sofa2', zone: 'inside', pose: 'sit', x: M + L.lx + 88, y: M + L.top + 106, laneX: L.lx + 108 },
+    { key: 'coffee', zone: 'pantry', pose: 'cup', x: rx + 28, y: L.BY + L.pantryY + 28, door: 'pantry' },
+    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 82, y: L.BY + L.pantryY + 28, door: 'pantry' },
+    { key: 'eat', zone: 'pantry', pose: 'sit', x: rx + 52, y: L.BY + L.pantryY + 68, door: 'pantry' },
+    { key: 'sofa1', zone: 'lounge', pose: 'sit', x: rx + 30, y: L.BY + L.loungeY + 28, door: 'lounge' },
+    { key: 'sofa2', zone: 'lounge', pose: 'sit', x: rx + 82, y: L.BY + L.loungeY + 28, door: 'lounge' },
+    { key: 'read', zone: 'lounge', pose: 'sit', x: rx + 56, y: L.BY + L.loungeY + 62, door: 'lounge' },
+    { key: 'corr1', zone: 'corridor', pose: 'sit', x: L.BX + 28, y: L.BY + L.corridorY + 36 },
+    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.openRight - 30, y: L.BY + L.corridorY + 36 },
   ];
 }
 
 export function outdoorSpots(L) {
-  const x0 = M + L.W + 26;
-  const yDoor = M + L.doorY;
-  const w = L.gardenW - 52;
+  const y = L.BY + L.H + 54;
   return [
-    { key: 'pool1', zone: 'outside', pose: 'sit', x: x0 + 40, y: yDoor + 12, laneX: x0 + 14 },
-    { key: 'pool2', zone: 'outside', pose: 'stand', x: x0 + w * 0.5, y: yDoor + 12, laneX: x0 + w * 0.5 },
-    { key: 'pool3', zone: 'outside', pose: 'sit', x: x0 + w - 18, y: yDoor + 12, laneX: x0 + w - 14 },
-    { key: 'tree', zone: 'outside', pose: 'sit', x: x0 + 24, y: M + 34, laneX: x0 + 14 },
-    { key: 'lawn', zone: 'outside', pose: 'stand', x: x0 + w * 0.55, y: M + 34, laneX: x0 + w * 0.5 },
-    { key: 'deck', zone: 'outside', pose: 'sit', x: x0 + w - 16, y: M + 34, laneX: x0 + w - 14 },
+    { key: 'lawn1', zone: 'outside', pose: 'stand', x: L.BX - 84, y: y + 18 },
+    { key: 'lawn2', zone: 'outside', pose: 'sit', x: L.BX + 34, y },
+    { key: 'lawn3', zone: 'outside', pose: 'stand', x: L.BX + L.W / 2 - 46, y: y + 26 },
+    { key: 'lawn4', zone: 'outside', pose: 'stand', x: L.BX + L.W / 2 + 46, y: y + 26 },
+    { key: 'lawn5', zone: 'outside', pose: 'sit', x: L.BX + L.W - 34, y },
+    { key: 'lawn6', zone: 'outside', pose: 'stand', x: L.BX + L.W + 84, y: y + 18 },
   ];
 }
 
+const hub = (L) => ({ x: L.BX + L.aisleX, y: L.BY + L.corridorY });
+
 function insideLeg(p, L) {
-  const hub = g(L, L.aisleX, L.bottomY);
-  const doorIn = g(L, L.doorX, L.bottomY);
-  const door = g(L, L.doorX, L.doorY);
   if (p.zone === 'desk') {
     const d = L.desks[p.i];
-    const rowY = d.y + CELL_H - 8;
-    return [p, g(L, d.x + 24, rowY), g(L, L.aisleX, rowY), hub, doorIn, door];
+    const rowY = L.BY + d.y + CELL_H - 8;
+    const seatX = L.BX + d.x + 24;
+    return [p, { x: seatX, y: rowY }, { x: L.BX + L.aisleX, y: rowY }, hub(L)];
   }
-  if (p.zone === 'inside') {
-    return [p, g(L, p.laneX, p.y - M), g(L, p.laneX, L.bottomY), hub, doorIn, door];
+  if (p.zone === 'corridor') {
+    return [p, { x: p.x, y: L.BY + L.corridorY }, hub(L)];
   }
-  const yDoor = M + L.doorY;
-  return [p, { x: p.laneX, y: p.y }, { x: p.laneX, y: yDoor }, { x: M + L.W + 10, y: yDoor }];
+  if (p.zone === 'pantry' || p.zone === 'lounge') {
+    const doorY = L.BY + (p.door === 'pantry' ? L.pantryDoorY : L.loungeDoorY);
+    const inX = L.BX + L.roomX + 4, outX = L.BX + L.roomDoorX - 8;
+    return [p, { x: inX, y: p.y }, { x: inX, y: doorY }, { x: outX, y: doorY },
+      { x: outX, y: L.BY + L.corridorY }, hub(L)];
+  }
+  const doorOutX = L.BX + L.doorX, doorOutY = L.BY + L.H + 12;
+  return [p, { x: p.x, y: doorOutY }, { x: doorOutX, y: doorOutY }];
+}
+
+function mainDoorLeg(L) {
+  const x = L.BX + L.doorX;
+  return [{ x: L.BX + L.aisleX, y: L.BY + L.corridorY },
+    { x, y: L.BY + L.corridorY }, { x, y: L.BY + L.H }, { x, y: L.BY + L.H + 12 }];
 }
 
 export function routeFor(from, to, L) {
   if (!from || !to) return [];
-  const A = insideLeg(from, L);
-  const B = insideLeg(to, L);
-  return A.concat(B.reverse().slice(1));
+  const a = insideLeg(from, L);
+  const b = insideLeg(to, L);
+  if ((from.zone === 'outside') !== (to.zone === 'outside')) {
+    a.push(...mainDoorLeg(L).slice(1));
+    b.push(...mainDoorLeg(L).slice(1));
+  }
+  return a.concat(b.reverse().slice(1));
 }
 
 export function chooseAway(id, prev, L, nowS) {
   if (prev && prev.zone !== 'desk' && Math.floor(nowS / BUCKET_AWAY) === prev.bucket) return prev;
-  const inSpots = indoorSpots(L), outSpots = outdoorSpots(L);
-  const useOutside = prev ? prev.zone === 'outside' : hash(id + 'out') % 2 === 0;
-  const pool = useOutside ? outSpots : inSpots;
+  const pool = [...indoorSpots(L), ...outdoorSpots(L)];
   const h = hash(id + ':' + Math.floor(nowS / BUCKET_AWAY));
   return { ...pool[h % pool.length], bucket: Math.floor(nowS / BUCKET_AWAY) };
 }
@@ -158,16 +181,14 @@ export function plan(agents, L, prevBeh, nowS) {
       spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away';
     } else {
       const bucket = Math.floor(nowS / BUCKET_LEISURE);
-      const stay = hash(id + ':stay:' + bucket) % 100 < 58;
-      if (stay) activity = 'leisure';
+      if (hash(id + ':stay:' + bucket) % 100 < 58) activity = 'leisure';
       else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
     }
     if (activity === 'queue' && (hash(id + ':q') % 100) < 45) activity = 'leisure';
     const leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l') % 3] : '';
     const overload = work && pending;
     const route = routeFor(old && old.spot ? old.spot : desk, spot, L);
-    next[id] = { spot, activity, leisure, overload, holdUntil, wasWorking: work || activity === 'relax', route,
-      from: old && old.spot ? old.spot : desk };
+    next[id] = { spot, activity, leisure, overload, holdUntil, wasWorking: work || activity === 'relax', route };
   });
   return next;
 }
@@ -184,7 +205,7 @@ export function look(id) {
   };
 }
 
-export function wrapName(name, max = 17, lines = 2) {
+export function wrapName(name, max = 12, lines = 2) {
   const out = [];
   let cur = '';
   for (const w of String(name || '').trim().split(/\s+/)) {
