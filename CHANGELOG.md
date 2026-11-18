@@ -2,6 +2,10 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## Unreleased
+
+- Require `MONITOR_PASSWORD` and protect UI/API with HTTP Basic Auth; `/healthz` stays public for probes
+
 ## v0.1.6 — 2026-10-11
 
 - Derive `remaining_pct` from used/total when 9Router omits it (e.g. Codex

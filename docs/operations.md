@@ -22,6 +22,7 @@ Env (Dokploy → Environment, values are literal — **no quotes**):
 
 | Key | Notes |
 |---|---|
+| `MONITOR_PASSWORD` | Required; protects UI and API with HTTP Basic Auth. Keep `/healthz` available for health checks only. Store in the platform secret manager. |
 | `MULTICA_TOKEN` / `MULTICA_WORKSPACE` | CLI auto-logs in at container start |
 | `KNOWN_DAEMONS` | comma-separated daemon IDs, or empty |
 | `NINEROUTER_URL` | **Must be reachable from the container.** Internal Docker hostnames of *other* Dokploy apps do NOT resolve (separate networks) — use the **public** 9Router URL (`https://…`) unless both services share a network |
@@ -36,7 +37,7 @@ Optional: mount a volume at `/app/data` to keep history + session across redeplo
 
 ## Env
 
-`MULTICA_TOKEN, MULTICA_WORKSPACE[, MULTICA_WORKSPACE_NAME], NINEROUTER_URL,
+`MONITOR_PASSWORD, MULTICA_TOKEN, MULTICA_WORKSPACE[, MULTICA_WORKSPACE_NAME], NINEROUTER_URL,
 NINEROUTER_KEY, NINEROUTER_PASSWORD[, NINEROUTER_COOKIE], AWS_REGION, ECS_CLUSTER`
 (+ `PORT`, `REFRESH_S` snapshot cadence default 60, `DATA_DIR` default `./data`).
 

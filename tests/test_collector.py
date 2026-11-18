@@ -1,4 +1,5 @@
 """Backend unit tests (stdlib only): python -m unittest discover -s tests"""
+import base64
 import importlib
 import json
 import os
@@ -91,6 +92,32 @@ class ConfigTest(unittest.TestCase):
             self.assertEqual(c.KNOWN_DAEMONS, [])
             self.assertTrue(c.is_known_daemon("anything"))
             self.assertEqual(c.COMPANY_NAME, "Command Center")
+
+
+class AuthTest(unittest.IsolatedAsyncioTestCase):
+    async def test_password_required_and_healthcheck_exempt(self):
+        from collector import main
+        from starlette.requests import Request
+
+        with mock.patch.object(main.config, "MONITOR_PASSWORD", "secret"):
+            def request(path, authorization=""):
+                return Request({
+                    "type": "http", "method": "GET", "path": path,
+                    "headers": [(b"authorization", authorization.encode())],
+                    "query_string": b"", "server": ("test", 80),
+                    "client": ("test", 1), "scheme": "http",
+                })
+
+            self.assertTrue(main._authorized(request("/api/snapshot", "Basic " +
+                base64.b64encode(b"viewer:secret").decode())))
+            self.assertFalse(main._authorized(request("/api/snapshot", "Basic " +
+                base64.b64encode(b"viewer:wrong").decode())))
+            async def next_handler(_):
+                return None
+
+            response = await main.require_auth(request("/api/snapshot"), next_handler)
+            self.assertEqual(response.status_code, 401)
+            self.assertIsNone(await main.require_auth(request("/healthz"), next_handler))
 
 
 class SnapshotMockTest(unittest.TestCase):

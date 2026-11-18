@@ -7,12 +7,14 @@ Snapshot di-cache dan di-refresh oleh background thread tiap REFRESH_S agar
 """
 from __future__ import annotations
 
+import base64
 import pathlib
+import secrets
 import threading
 import time
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config
@@ -88,6 +90,8 @@ def _loop() -> None:
 
 @app.on_event("startup")
 def _start() -> None:
+    if not config.MONITOR_PASSWORD:
+        raise RuntimeError("MONITOR_PASSWORD must be configured")
     threading.Thread(target=_loop, daemon=True).start()
 
 
@@ -100,6 +104,28 @@ def api_history(range: str = "week") -> dict:
 
 _live_cache: dict = {}
 LIVE_TTL_S = 10
+
+
+def _authorized(request: Request) -> bool:
+    if not config.MONITOR_PASSWORD:
+        return True
+    credentials = request.headers.get("authorization", "").removeprefix("Basic ")
+    try:
+        decoded = base64.b64decode(credentials, validate=True).decode()
+    except (ValueError, UnicodeDecodeError):
+        return False
+    _, separator, password = decoded.partition(":")
+    return bool(separator) and secrets.compare_digest(
+        password.encode(), config.MONITOR_PASSWORD.encode()
+    )
+
+
+@app.middleware("http")
+async def require_auth(request: Request, call_next):
+    if config.MONITOR_PASSWORD and request.url.path != "/healthz" and not _authorized(request):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401,
+                            headers={"WWW-Authenticate": 'Basic realm="AI monitoring"'})
+    return await call_next(request)
 
 
 @app.get("/api/live")
