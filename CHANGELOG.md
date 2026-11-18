@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## Unreleased
+
+- 2D Office canvas: zoom (wheel/buttons, 50–600%) and pan in all directions, with a `Fit` reset
+- Scene uses SVG `contain` scaling; letterboxed space filled with outdoor grass
+- Smaller, crisper sprites and larger agent labels; names wrap to two short lines
+- Walled office with a real door; every trip to pantry, lounge or garden routes through door and desk aisles
+- Agents stay at their desk 60s after the last run, then relax at the desk (video/book/game) or roam
+- Working agents show extra task windows and an overload badge when tasks are pending while running
+- Garden is now outside the building: large pool, deck chairs, trees, flower beds, lamps and string lights
+
 ## v0.1.7 — 2026-11-18
 
 - View Mode toggle: `Standard` / `2D Office` (pixel-art top-down office, persisted)

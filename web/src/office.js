@@ -1,12 +1,14 @@
-// Pure helpers for the 2D Office view (layout, schedule, daylight). No React here.
-
+// Pure helpers for the 2D Office view (layout, routing, schedule, daylight).
 export const TZ_DEFAULT = 'Asia/Jakarta';
-export const WALL_H = 46;
+export const M = 26;
 export const CELL_W = 48;
-export const CELL_H = 60;
-export const LOUNGE_W = 128;
+export const CELL_H = 72;
+export const WALL_H = 44;
+export const LOUNGE_W = 120;
 const POD_GAP = 10;
-const SLOT_S = 75;
+const BUCKET_LEISURE = 45;
+const BUCKET_AWAY = 180;
+const HOLD_S = 60;
 
 export function hash(s) {
   let h = 0x811c9dc5;
@@ -18,6 +20,7 @@ export function hash(s) {
 }
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const g = (L, x, y) => ({ x: M + x, y: M + y });
 
 function mix(a, b, t) {
   const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
@@ -25,7 +28,6 @@ function mix(a, b, t) {
   return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
 }
 
-// Wall-clock parts in the office timezone; invalid tz falls back to Jakarta.
 export function tzClock(now, tz) {
   const fmt = (zone) => new Intl.DateTimeFormat('en-GB', {
     timeZone: zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
@@ -38,7 +40,6 @@ export function tzClock(now, tz) {
   return { h, m, s, hours: h + m / 60 + s / 3600, zone: p.timeZoneName, date: `${p.weekday} ${p.day} ${p.month}` };
 }
 
-// ponytail: fixed 06:00-18:00 sun arc (fits equatorial WIB); add a solar calc if offices move far from the equator.
 export function sky(hours) {
   const alt = Math.sin((Math.PI * (hours - 6)) / 12);
   const day = clamp((alt + 0.1) / 0.35, 0, 1);
@@ -49,59 +50,126 @@ export function sky(hours) {
     bottom: mix(mix('#1c2452', '#a8dbf6', day), '#ff9a5c', glow * 0.8),
     sunX: (hours - 6) / 12,
     moonX: (((hours + 12) % 24) - 6) / 12,
+    night: 1 - day,
   };
 }
 
 export function layout(n) {
-  const cols = clamp(Math.ceil(Math.sqrt(Math.max(1, n) * 1.6)), 2, 5);
-  const rows = Math.max(1, Math.ceil(n / cols));
+  const count = Math.max(1, n);
+  const cols = clamp(Math.ceil(Math.sqrt(count * 1.6)), 2, 5);
+  const rows = Math.max(1, Math.ceil(count / cols));
   const deskX = (c) => 10 + c * CELL_W + Math.floor(c / 2) * POD_GAP;
-  const top = WALL_H + 10;
-  const lx = deskX(cols - 1) + CELL_W + 16;
-  const W = lx + LOUNGE_W + 6;
-  const H = top + Math.max(rows * CELL_H + 14, 236);
-  const desks = Array.from({ length: n }, (_, i) => ({ x: deskX(i % cols), y: top + Math.floor(i / cols) * CELL_H }));
-  return { cols, rows, W, H, top, lx, desks };
+  const deskRight = deskX(cols - 1) + CELL_W;
+  const top = WALL_H + 12;
+  const lx = deskRight + 20;
+  const W = lx + LOUNGE_W + 8;
+  const H = top + Math.max(rows * CELL_H + 80, 260);
+  const gardenW = Math.max(300, W * 0.9);
+  return {
+    cols, rows, W, H, top, lx, gardenW, deskRight,
+    VW: W + gardenW + 2 * M,
+    VH: H + 2 * M,
+    aisleX: deskRight + 8,
+    bottomY: H - 14,
+    doorX: W - 10,
+    doorY: H - 30,
+    desks: Array.from({ length: count }, (_, i) => ({ x: deskX(i % cols), y: top + Math.floor(i / cols) * CELL_H })),
+  };
 }
 
-// Feet positions in the lounge; must match the furniture drawn in Office.jsx.
-export function loungeSpots(lx, H) {
-  const t = WALL_H;
+export function deskSpot(a, i, L) {
+  const d = L.desks[i];
+  return { key: 'desk:' + a.agent_id, zone: 'desk', i, id: a.agent_id, pose: 'desk',
+    x: M + d.x + 24, y: M + d.y + 44 };
+}
+
+export function indoorSpots(L) {
   return [
-    { x: lx + 20, y: t + 40, pose: 'cup' }, { x: lx + 42, y: t + 42, pose: 'cup' }, { x: lx + 64, y: t + 40, pose: 'cup' },
-    { x: lx + 118, y: t + 58, pose: 'cup' },
-    { x: lx + 32, y: t + 104, pose: 'sit' }, { x: lx + 52, y: t + 104, pose: 'sit' }, { x: lx + 72, y: t + 104, pose: 'sit' },
-    { x: lx + 108, y: t + 124, pose: 'sit' },
-    { x: lx + 58, y: t + 172, pose: 'sit' }, { x: lx + 74, y: t + 172, pose: 'sit' },
-    { x: lx + 46, y: t + 200, pose: 'stand' }, { x: lx + 100, y: H - 26, pose: 'stand' }, { x: lx + 66, y: H - 14, pose: 'stand' },
+    { key: 'pantry', zone: 'inside', pose: 'cup', x: M + L.lx + 18, y: M + L.top + 34, laneX: L.lx + 6 },
+    { key: 'pantry2', zone: 'inside', pose: 'cup', x: M + L.lx + 76, y: M + L.top + 34, laneX: L.lx + 108 },
+    { key: 'sofa', zone: 'inside', pose: 'sit', x: M + L.lx + 34, y: M + L.top + 106, laneX: L.lx + 6 },
+    { key: 'sofa2', zone: 'inside', pose: 'sit', x: M + L.lx + 88, y: M + L.top + 106, laneX: L.lx + 108 },
   ];
 }
 
-export const atDesk = (a) => !!a.runtime_online && (a.running > 0 || (a.pending_total || 0) > 0);
+export function outdoorSpots(L) {
+  const x0 = M + L.W + 26;
+  const yDoor = M + L.doorY;
+  const w = L.gardenW - 52;
+  return [
+    { key: 'pool1', zone: 'outside', pose: 'sit', x: x0 + 40, y: yDoor + 12, laneX: x0 + 14 },
+    { key: 'pool2', zone: 'outside', pose: 'stand', x: x0 + w * 0.5, y: yDoor + 12, laneX: x0 + w * 0.5 },
+    { key: 'pool3', zone: 'outside', pose: 'sit', x: x0 + w - 18, y: yDoor + 12, laneX: x0 + w - 14 },
+    { key: 'tree', zone: 'outside', pose: 'sit', x: x0 + 24, y: M + 34, laneX: x0 + 14 },
+    { key: 'lawn', zone: 'outside', pose: 'stand', x: x0 + w * 0.55, y: M + 34, laneX: x0 + w * 0.5 },
+    { key: 'deck', zone: 'outside', pose: 'sit', x: x0 + w - 16, y: M + 34, laneX: x0 + w - 14 },
+  ];
+}
 
-// Busy agents sit at their desk; the rest roam to a free lounge spot that changes every ~75s.
-export function plan(agents, desks, spots, nowS) {
-  const out = {};
-  const idle = [];
-  agents.forEach((a, i) => {
-    const d = desks[i];
-    if (atDesk(a)) out[a.agent_id] = { x: d.x + 24, y: d.y + 40, pose: 'desk' };
-    else idle.push([a, d]);
-  });
-  idle.sort((p, q) => String(p[0].agent_id).localeCompare(String(q[0].agent_id)));
-  const taken = new Set();
-  for (const [a, d] of idle) {
-    const id = String(a.agent_id);
-    const r = hash(id + ':' + Math.floor((nowS + (hash(id) % SLOT_S)) / SLOT_S));
-    let pick = -1;
-    for (let k = 0; r % 5 !== 0 && k < spots.length; k++) {
-      const j = (r + k) % spots.length;
-      if (!taken.has(j)) { pick = j; break; }
-    }
-    if (pick < 0) out[id] = { x: d.x + 42, y: d.y + 36, pose: 'stand' };
-    else { taken.add(pick); out[id] = { ...spots[pick] }; }
+function insideLeg(p, L) {
+  const hub = g(L, L.aisleX, L.bottomY);
+  const doorIn = g(L, L.doorX, L.bottomY);
+  const door = g(L, L.doorX, L.doorY);
+  if (p.zone === 'desk') {
+    const d = L.desks[p.i];
+    const rowY = d.y + CELL_H - 8;
+    return [p, g(L, d.x + 24, rowY), g(L, L.aisleX, rowY), hub, doorIn, door];
   }
-  return out;
+  if (p.zone === 'inside') {
+    return [p, g(L, p.laneX, p.y - M), g(L, p.laneX, L.bottomY), hub, doorIn, door];
+  }
+  const yDoor = M + L.doorY;
+  return [p, { x: p.laneX, y: p.y }, { x: p.laneX, y: yDoor }, { x: M + L.W + 10, y: yDoor }];
+}
+
+export function routeFor(from, to, L) {
+  if (!from || !to) return [];
+  const A = insideLeg(from, L);
+  const B = insideLeg(to, L);
+  return A.concat(B.reverse().slice(1));
+}
+
+export function chooseAway(id, prev, L, nowS) {
+  if (prev && prev.zone !== 'desk' && Math.floor(nowS / BUCKET_AWAY) === prev.bucket) return prev;
+  const inSpots = indoorSpots(L), outSpots = outdoorSpots(L);
+  const useOutside = prev ? prev.zone === 'outside' : hash(id + 'out') % 2 === 0;
+  const pool = useOutside ? outSpots : inSpots;
+  const h = hash(id + ':' + Math.floor(nowS / BUCKET_AWAY));
+  return { ...pool[h % pool.length], bucket: Math.floor(nowS / BUCKET_AWAY) };
+}
+
+export function plan(agents, L, prevBeh, nowS) {
+  const next = {};
+  agents.forEach((a, i) => {
+    const id = a.agent_id;
+    const desk = deskSpot(a, i, L);
+    const old = prevBeh && prevBeh[id];
+    const work = a.running > 0;
+    const pending = (a.pending_total || 0) > 0;
+    let spot = desk, activity = 'idle';
+    let holdUntil = old && old.wasWorking && !work && !old.holdUntil ? nowS + HOLD_S : (old ? old.holdUntil || 0 : 0);
+    if (work) {
+      activity = 'work'; holdUntil = 0;
+    } else if (nowS < holdUntil) {
+      activity = 'relax';
+    } else if (pending) {
+      activity = 'queue';
+    } else if (!a.runtime_online) {
+      spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away';
+    } else {
+      const bucket = Math.floor(nowS / BUCKET_LEISURE);
+      const stay = hash(id + ':stay:' + bucket) % 100 < 58;
+      if (stay) activity = 'leisure';
+      else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
+    }
+    if (activity === 'queue' && (hash(id + ':q') % 100) < 45) activity = 'leisure';
+    const leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l') % 3] : '';
+    const overload = work && pending;
+    const route = routeFor(old && old.spot ? old.spot : desk, spot, L);
+    next[id] = { spot, activity, leisure, overload, holdUntil, wasWorking: work || activity === 'relax', route,
+      from: old && old.spot ? old.spot : desk };
+  });
+  return next;
 }
 
 const SKIN = ['#f3d0b0', '#e5b48a', '#c98d60', '#9a6440', '#6e4529'];
@@ -116,8 +184,7 @@ export function look(id) {
   };
 }
 
-// Word-wrap a name into at most `lines` lines of `max` chars; trailing separators dropped, overflow ellipsized.
-export function wrapName(name, max = 18, lines = 2) {
+export function wrapName(name, max = 17, lines = 2) {
   const out = [];
   let cur = '';
   for (const w of String(name || '').trim().split(/\s+/)) {
