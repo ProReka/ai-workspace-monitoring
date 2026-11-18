@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { statusOf } from './fmt.js';
-import { LOUNGE_W, WALL_H, layout, look, loungeSpots, plan, sky, tzClock } from './office.js';
+import { LOUNGE_W, WALL_H, hash, layout, look, loungeSpots, plan, sky, tzClock, wrapName } from './office.js';
 
 const R = (x, y, w, h, fill, { key, ...rest } = {}) => <rect key={key} x={x} y={y} width={w} height={h} fill={fill} {...rest} />;
 
@@ -66,7 +66,7 @@ function Actor({ a, p, onAgent }) {
       <title>{`${a.agent_name} — ${st.label}`}</title>
       <Person lk={look(a.agent_id)} pose={pose} />
       {pose !== 'desk' && (
-        <text className="olabel" y={-28} textAnchor="middle">{a.agent_name.slice(0, 10)}</text>)}
+        <text className="olabel" y={-28} textAnchor="middle">{a.agent_name}</text>)}
     </g>
   );
 }
@@ -82,7 +82,7 @@ function Desk({ a, d, onAgent }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
       transform={`translate(${d.x} ${d.y})`}>
       <title>{label.replace('. Activate for details.', '')}</title>
-      {R(2, 0, 44, 52, 'transparent', { className: 'hit' })}
+      {R(2, 0, 44, 57, 'transparent', { className: 'hit' })}
       {R(4, 12, 40, 16, '#a8794a')}{R(4, 12, 40, 1, '#c4935e')}{R(4, 28, 40, 3, '#7a5432')}
       {R(6, 31, 2, 4, '#5e3f24')}{R(40, 31, 2, 4, '#5e3f24')}
       {R(14, 1, 20, 13, '#2b2f38')}{R(22, 14, 4, 2, '#2b2f38')}{R(19, 15, 10, 1, '#2b2f38')}
@@ -94,7 +94,9 @@ function Desk({ a, d, onAgent }) {
       {lk.deco === 2 && <>{R(38, 14, 4, 4, '#e07a5f')}{R(39, 15, 2, 1, '#fff')}</>}
       {lk.deco === 3 && <>{R(37, 14, 2, 6, '#1e1e1e')}{R(36, 13, 4, 2, '#f2c14e')}</>}
       {R(17, 33, 14, 9, '#3b3f4a')}{R(17, 33, 14, 1, '#555b69')}{R(23, 42, 2, 3, '#2a2c33')}
-      <text className="plate" x={24} y={53} textAnchor="middle">{a.agent_name.slice(0, 9)}</text>
+      <text className="plate" x={24} y={50} textAnchor="middle">
+        {wrapName(a.agent_name).map((l, i) => <tspan key={i} x={24} dy={i ? 4.2 : 0}>{l}</tspan>)}
+      </text>
     </g>
   );
 }
@@ -176,32 +178,56 @@ function Lamp({ x, y }) {
   return <g>{R(x - 1, y - 9, 2, 9, '#3b3f4a')}{R(x - 2, y - 12, 4, 3, '#2b2f38')}{R(x - 1, y - 11, 2, 2, '#ffe08a')}{R(x - 2, y, 4, 1, '#2b2f38')}</g>;
 }
 
-// Outdoor garden around the building, bounded by a perimeter wall with a gate at the bottom.
-function Yard({ OW, OH, W, H, k }) {
-  const gx = M + W / 2;
-  const trees = [];
-  for (let x = 16; x < OW - 10; x += 34) trees.push([x, 16], [x + 17, OH - 15]);
-  for (let y = 54; y < OH - 40; y += 40) trees.push([15, y], [OW - 15, y + 20]);
-  const kept = trees.filter(([x, y]) => !(y > OH - 30 && Math.abs(x - gx) < 22));
-  const lamps = [[gx - 12, OH - 10], [gx + 12, OH - 10], [M - 6, M - 6], [M + W + 6, M - 6], [M - 6, M + H + 6], [M + W + 6, M + H + 6]];
+// Outdoor garden filling the whole viewport, bounded by a perimeter wall with a gate below the building.
+function Yard({ X0, Y0, VW, VH, W, H, k }) {
+  const X1 = X0 + VW, Y1 = Y0 + VH, gx = M + W / 2;
+  const free = (x, y, pad) => x > X0 + 12 && x < X1 - 12 && y > Y0 + 14 && y < Y1 - 12
+    && !(x > M - pad && x < M + W + pad && y > M - pad && y < M + H + pad)
+    && !(Math.abs(x - gx) < 16 && y > M + H);
+  const trees = [], flowers = [];
+  for (let y = Math.ceil(Y0 / 30) * 30; y < Y1; y += 30) {
+    for (let x = Math.ceil(X0 / 34) * 34; x < X1; x += 34) {
+      const h = hash(x + ':' + y);
+      const tx = x + (h % 13) - 6, ty = y + ((h >>> 4) % 11) - 5;
+      if (free(tx, ty, 16)) trees.push([tx, ty]);
+      const fx = tx + 17, fy = ty + 15;
+      if (h % 3 === 0 && free(fx, fy, 6)) flowers.push([fx, fy, ['#f2c14e', '#e07a5f', '#d17ad1', '#f4f1de'][(h >>> 8) % 4]]);
+    }
+  }
+  const lamps = [[gx - 12, Y1 - 10], [gx + 12, Y1 - 10], [M - 6, M - 6], [M + W + 6, M - 6], [M - 6, M + H + 6], [M + W + 6, M + H + 6]];
   const night = 1 - k.day;
   return (
     <>
-      {R(0, 0, OW, OH, 'url(#oGrass)')}
-      {R(gx - 7, M + H, 14, OH - M - H, '#c9b48f')}
-      {Array.from({ length: Math.ceil((OH - M - H) / 6) }, (_, i) => R(gx - 5 + (i % 2) * 2, M + H + 2 + i * 6, 8, 3, '#b39b72', { key: i }))}
-      {kept.map(([x, y], i) => <Tree key={i} x={x} y={y} />)}
-      {[[M - 12, M + 40, '#f2c14e'], [M + W + 12, M + 80, '#e07a5f'], [gx - 24, OH - 20, '#d17ad1'], [gx + 26, OH - 22, '#f4f1de']].map(([x, y, col], i) =>
-        <g key={i}>{R(x - 3, y - 2, 6, 5, '#3a7f38')}{R(x - 1, y - 1, 2, 2, col)}{R(x + 1, y + 1, 2, 2, col)}</g>)}
-      <path d={`M0 0H${OW}V${OH}H0Z M6 6H${OW - 6}V${OH - 6}H6Z`} fill="#9c5a3c" fillRule="evenodd" />
-      {R(0, 0, OW, 2, '#b8714f')}{R(gx - 9, OH - 6, 18, 6, 'url(#oGrass)')}{R(gx - 7, OH - 6, 14, 6, '#c9b48f')}
-      {R(gx - 11, OH - 8, 2, 8, '#6a3a24')}{R(gx + 9, OH - 8, 2, 8, '#6a3a24')}
-      <path d={`M0 0H${OW}V${OH}H0Z M${M} ${M}h${W}v${H}h-${W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.55} pointerEvents="none" />
+      {R(X0, Y0, VW, VH, 'url(#oGrass)')}
+      {R(gx - 7, M + H, 14, Y1 - M - H, '#c9b48f')}
+      {Array.from({ length: Math.max(0, Math.ceil((Y1 - M - H) / 6)) }, (_, i) => R(gx - 5 + (i % 2) * 2, M + H + 2 + i * 6, 8, 3, '#b39b72', { key: i }))}
+      {flowers.map(([x, y, col], i) =>
+        <g key={'f' + i}>{R(x - 3, y - 2, 6, 5, '#3a7f38')}{R(x - 1, y - 1, 2, 2, col)}{R(x + 1, y + 1, 2, 2, col)}</g>)}
+      {trees.map(([x, y], i) => <Tree key={i} x={x} y={y} />)}
+      <path d={`M${X0} ${Y0}H${X1}V${Y1}H${X0}Z M${X0 + 6} ${Y0 + 6}H${X1 - 6}V${Y1 - 6}H${X0 + 6}Z`} fill="#9c5a3c" fillRule="evenodd" />
+      {R(X0, Y0, VW, 2, '#b8714f')}{R(gx - 9, Y1 - 6, 18, 6, 'url(#oGrass)')}{R(gx - 7, Y1 - 6, 14, 6, '#c9b48f')}
+      {R(gx - 11, Y1 - 8, 2, 8, '#6a3a24')}{R(gx + 9, Y1 - 8, 2, 8, '#6a3a24')}
+      <path d={`M${X0} ${Y0}H${X1}V${Y1}H${X0}Z M${M} ${M}h${W}v${H}h-${W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.55} pointerEvents="none" />
       {lamps.map(([x, y], i) => <Lamp key={i} x={x} y={y} />)}
       {night > 0.3 && lamps.map(([x, y], i) =>
         <circle key={'g' + i} cx={x} cy={y - 8} r={16} fill="#ffd98a" opacity={night * 0.28} shapeRendering="auto" pointerEvents="none" />)}
     </>
   );
+}
+
+// ponytail: cap screen px per SVG unit so art stays small on big displays; tune if TVs need bigger.
+const MAX_SCALE = 1.15;
+
+function useSize(ref) {
+  const [sz, setSz] = useState(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(([e]) => setSz({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return sz;
 }
 
 export default function Office({ snap, now, onAgent, tz }) {
@@ -228,6 +254,12 @@ export default function Office({ snap, now, onAgent, tz }) {
   const counts = { working: 0, queued: 0, idle: 0, offline: 0 };
   agents.forEach((a) => { counts[statusOf(a).group] += 1; });
   const order = [...agents].sort((p, q) => (pos[p.agent_id]?.y || 0) - (pos[q.agent_id]?.y || 0));
+  const box = useRef(null);
+  const sz = useSize(box);
+  const cw = W + 2 * M, ch = H + 2 * M;
+  const sc = sz && sz.w > 0 && sz.h > 0 ? Math.min(sz.w / cw, sz.h / ch, MAX_SCALE) : 0;
+  const VW = sc ? Math.max(cw, sz.w / sc) : cw, VH = sc ? Math.max(ch, sz.h / sc) : ch;
+  const X0 = -(VW - cw) / 2, Y0 = -(VH - ch) / 2;
 
   return (
     <div className="office">
@@ -236,7 +268,8 @@ export default function Office({ snap, now, onAgent, tz }) {
         <span className="oclock mono" title={`Office time (${tz || 'Asia/Jakarta'})`}>
           {String(c.h).padStart(2, '0')}:{String(c.m).padStart(2, '0')}:{String(c.s).padStart(2, '0')} {c.zone} · {c.date}</span>
       </h2>
-      <svg viewBox={`0 0 ${W + 2 * M} ${H + 2 * M}`} shapeRendering="crispEdges" role="group"
+      <div className="ostage" ref={box}>
+      <svg viewBox={`${X0} ${Y0} ${VW} ${VH}`} shapeRendering="crispEdges" role="group"
         aria-label={`2D office of ${name}: ${agents.length} desks`}>
         <defs>
           <linearGradient id="oSky" x1="0" y1="0" x2="0" y2="1">
@@ -256,7 +289,7 @@ export default function Office({ snap, now, onAgent, tz }) {
           </pattern>
         </defs>
 
-        <Yard OW={W + 2 * M} OH={H + 2 * M} W={W} H={H} k={k} />
+        <Yard X0={X0} Y0={Y0} VW={VW} VH={VH} W={W} H={H} k={k} />
         {R(M - 3, M - 3, W + 6, H + 6, '#5c4a39')}
         <g transform={`translate(${M} ${M})`}>
         {R(0, 0, W, H, 'url(#oWood)')}
@@ -319,6 +352,7 @@ export default function Office({ snap, now, onAgent, tz }) {
         </g>
         </g>
       </svg>
+      </div>
     </div>
   );
 }

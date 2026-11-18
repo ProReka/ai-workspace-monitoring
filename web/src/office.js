@@ -3,7 +3,7 @@
 export const TZ_DEFAULT = 'Asia/Jakarta';
 export const WALL_H = 46;
 export const CELL_W = 48;
-export const CELL_H = 56;
+export const CELL_H = 60;
 export const LOUNGE_W = 128;
 const POD_GAP = 10;
 const SLOT_S = 75;
@@ -114,4 +114,20 @@ export function look(id) {
     skin: SKIN[h % SKIN.length], hair: HAIR[(h >>> 3) % HAIR.length],
     shirt: `hsl(${(h >>> 6) % 360} 55% 52%)`, pants: PANTS[(h >>> 15) % PANTS.length], deco: (h >>> 18) % 4,
   };
+}
+
+// Word-wrap a name into at most `lines` lines of `max` chars; trailing separators dropped, overflow ellipsized.
+export function wrapName(name, max = 18, lines = 2) {
+  const out = [];
+  let cur = '';
+  for (const w of String(name || '').trim().split(/\s+/)) {
+    const next = cur ? cur + ' ' + w : w;
+    if (next.length <= max || !cur) cur = next;
+    else { out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  const clean = (l) => l.replace(/\s*[-–—|·:]+$/, '');
+  const res = out.slice(0, lines).map(clean).map((l) => (l.length > max ? l.slice(0, max - 1) + '…' : l));
+  if (out.length > lines) res[lines - 1] = res[lines - 1].slice(0, max - 1).replace(/\s+$/, '') + '…';
+  return res.filter(Boolean);
 }

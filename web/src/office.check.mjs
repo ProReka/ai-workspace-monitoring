@@ -1,6 +1,6 @@
 // Self-check for 2D Office helpers: `node src/office.check.mjs`
 import assert from 'node:assert/strict';
-import { layout, loungeSpots, plan, sky, tzClock } from './office.js';
+import { layout, loungeSpots, plan, sky, tzClock, wrapName } from './office.js';
 
 const t = Date.UTC(2026, 10, 18, 5, 0, 0);
 assert.equal(tzClock(t, 'Asia/Jakarta').h, 12);
@@ -21,5 +21,12 @@ for (const now of [0, 75, 1e6]) {
   const lounge = Object.values(p).filter((x) => x.pose !== 'desk' && x.x >= L.lx);
   assert.equal(new Set(lounge.map((x) => x.x + ',' + x.y)).size, lounge.length);
   assert.deepEqual(plan(agents, L.desks, spots, now), p);
+}
+assert.deepEqual(wrapName('Technical Lead - Tanto'), ['Technical Lead', 'Tanto']);
+assert.deepEqual(wrapName('Nova'), ['Nova']);
+assert.deepEqual(wrapName('Supercalifragilisticexpialidocious'), ['Supercalifragilis…']);
+for (const n of ['Backend Developer Senior Lead - Andromeda', 'A B C D E F G H I J K L M N O P']) {
+  const w = wrapName(n);
+  assert.ok(w.length <= 2 && w.every((l) => l.length <= 18), n);
 }
 console.log('office.check ok');

@@ -8,6 +8,7 @@ All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 - 2D Office: desk + computer per agent; typing when running, roaming pantry/lounge/garden when idle,
   screen off while runtime offline; wall clock + daylight from `OFFICE_TZ` (default `Asia/Jakarta`)
 - Outdoor garden around the building inside a perimeter wall; night dims outside only, garden lamps glow, office interior stays lit
+- Office fills the panel full-width (garden extends to edges), pixel scale capped; long agent names wrap to 2 lines
 - Workspace plaque: `OFFICE_LOGO_URL` or Multica workspace avatar, falls back to name in Pixelify Sans
 
 ## v0.1.6 — 2026-10-11
