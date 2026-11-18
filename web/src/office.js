@@ -49,8 +49,6 @@ export function sky(hours) {
     bottom: mix(mix('#1c2452', '#a8dbf6', day), '#ff9a5c', glow * 0.8),
     sunX: (hours - 6) / 12,
     moonX: (((hours + 12) % 24) - 6) / 12,
-    dark: (1 - day) * 0.5,
-    lamps: day < 0.6,
   };
 }
 

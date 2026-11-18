@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { statusOf } from './fmt.js';
-import { CELL_W, LOUNGE_W, WALL_H, layout, look, loungeSpots, plan, sky, tzClock } from './office.js';
+import { LOUNGE_W, WALL_H, layout, look, loungeSpots, plan, sky, tzClock } from './office.js';
 
 const R = (x, y, w, h, fill, { key, ...rest } = {}) => <rect key={key} x={x} y={y} width={w} height={h} fill={fill} {...rest} />;
 
@@ -161,6 +161,49 @@ function Plant({ x, y, big }) {
   );
 }
 
+const M = 30;
+
+function Tree({ x, y }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      {R(-6, 5, 12, 3, 'rgba(0,0,0,.22)')}{R(-1, 2, 3, 5, '#6b4a2b')}
+      {R(-7, -6, 14, 9, '#2f6b2f')}{R(-5, -9, 10, 3, '#3a7f38')}{R(-4, -6, 6, 4, '#4f9a44')}{R(-2, -8, 3, 2, '#5fb352')}
+    </g>
+  );
+}
+
+function Lamp({ x, y }) {
+  return <g>{R(x - 1, y - 9, 2, 9, '#3b3f4a')}{R(x - 2, y - 12, 4, 3, '#2b2f38')}{R(x - 1, y - 11, 2, 2, '#ffe08a')}{R(x - 2, y, 4, 1, '#2b2f38')}</g>;
+}
+
+// Outdoor garden around the building, bounded by a perimeter wall with a gate at the bottom.
+function Yard({ OW, OH, W, H, k }) {
+  const gx = M + W / 2;
+  const trees = [];
+  for (let x = 16; x < OW - 10; x += 34) trees.push([x, 16], [x + 17, OH - 15]);
+  for (let y = 54; y < OH - 40; y += 40) trees.push([15, y], [OW - 15, y + 20]);
+  const kept = trees.filter(([x, y]) => !(y > OH - 30 && Math.abs(x - gx) < 22));
+  const lamps = [[gx - 12, OH - 10], [gx + 12, OH - 10], [M - 6, M - 6], [M + W + 6, M - 6], [M - 6, M + H + 6], [M + W + 6, M + H + 6]];
+  const night = 1 - k.day;
+  return (
+    <>
+      {R(0, 0, OW, OH, 'url(#oGrass)')}
+      {R(gx - 7, M + H, 14, OH - M - H, '#c9b48f')}
+      {Array.from({ length: Math.ceil((OH - M - H) / 6) }, (_, i) => R(gx - 5 + (i % 2) * 2, M + H + 2 + i * 6, 8, 3, '#b39b72', { key: i }))}
+      {kept.map(([x, y], i) => <Tree key={i} x={x} y={y} />)}
+      {[[M - 12, M + 40, '#f2c14e'], [M + W + 12, M + 80, '#e07a5f'], [gx - 24, OH - 20, '#d17ad1'], [gx + 26, OH - 22, '#f4f1de']].map(([x, y, col], i) =>
+        <g key={i}>{R(x - 3, y - 2, 6, 5, '#3a7f38')}{R(x - 1, y - 1, 2, 2, col)}{R(x + 1, y + 1, 2, 2, col)}</g>)}
+      <path d={`M0 0H${OW}V${OH}H0Z M6 6H${OW - 6}V${OH - 6}H6Z`} fill="#9c5a3c" fillRule="evenodd" />
+      {R(0, 0, OW, 2, '#b8714f')}{R(gx - 9, OH - 6, 18, 6, 'url(#oGrass)')}{R(gx - 7, OH - 6, 14, 6, '#c9b48f')}
+      {R(gx - 11, OH - 8, 2, 8, '#6a3a24')}{R(gx + 9, OH - 8, 2, 8, '#6a3a24')}
+      <path d={`M0 0H${OW}V${OH}H0Z M${M} ${M}h${W}v${H}h-${W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.55} pointerEvents="none" />
+      {lamps.map(([x, y], i) => <Lamp key={i} x={x} y={y} />)}
+      {night > 0.3 && lamps.map(([x, y], i) =>
+        <circle key={'g' + i} cx={x} cy={y - 8} r={16} fill="#ffd98a" opacity={night * 0.28} shapeRendering="auto" pointerEvents="none" />)}
+    </>
+  );
+}
+
 export default function Office({ snap, now, onAgent, tz }) {
   const agents = [...(snap.multica.agents || [])].sort((x, y) =>
     String(x.agent_name).localeCompare(String(y.agent_name)) || String(x.agent_id).localeCompare(String(y.agent_id)));
@@ -193,7 +236,7 @@ export default function Office({ snap, now, onAgent, tz }) {
         <span className="oclock mono" title={`Office time (${tz || 'Asia/Jakarta'})`}>
           {String(c.h).padStart(2, '0')}:{String(c.m).padStart(2, '0')}:{String(c.s).padStart(2, '0')} {c.zone} · {c.date}</span>
       </h2>
-      <svg viewBox={`0 0 ${W} ${H}`} shapeRendering="crispEdges" role="group"
+      <svg viewBox={`0 0 ${W + 2 * M} ${H + 2 * M}`} shapeRendering="crispEdges" role="group"
         aria-label={`2D office of ${name}: ${agents.length} desks`}>
         <defs>
           <linearGradient id="oSky" x1="0" y1="0" x2="0" y2="1">
@@ -213,6 +256,9 @@ export default function Office({ snap, now, onAgent, tz }) {
           </pattern>
         </defs>
 
+        <Yard OW={W + 2 * M} OH={H + 2 * M} W={W} H={H} k={k} />
+        {R(M - 3, M - 3, W + 6, H + 6, '#5c4a39')}
+        <g transform={`translate(${M} ${M})`}>
         {R(0, 0, W, H, 'url(#oWood)')}
         {R(lx - 6, t, LOUNGE_W + 12, 74, 'url(#oTile)')}
         {R(lx - 6, t + 150, LOUNGE_W + 12, H - t - 150, 'url(#oGrass)')}
@@ -268,12 +314,9 @@ export default function Office({ snap, now, onAgent, tz }) {
         {agents.map((a, i) => <Desk key={a.agent_id} a={a} d={desks[i]} onAgent={onAgent} />)}
         {order.map((a) => <Actor key={a.agent_id} a={a} p={pos[a.agent_id]} onAgent={onAgent} />)}
 
-        {R(0, 0, W, H, '#0a1030', { opacity: k.dark, pointerEvents: 'none' })}
         <g pointerEvents="none">
-          {k.lamps && desks.filter((_, i) => i % 2 === 0).map((d, i) =>
-            <circle key={i} cx={d.x + CELL_W} cy={d.y + 24} r={34} fill="#ffd98a" opacity={(1 - k.day) * 0.12} shapeRendering="auto" />)}
-          {k.lamps && <circle cx={lx + 50} cy={t + 100} r={46} fill="#ffd98a" opacity={(1 - k.day) * 0.12} shapeRendering="auto" />}
           {agents.map((a, i) => <Screen key={a.agent_id} a={a} d={desks[i]} />)}
+        </g>
         </g>
       </svg>
     </div>
