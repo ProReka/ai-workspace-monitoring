@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
-## Unreleased
+## v0.1.7 — 2026-11-18
 
 - View Mode toggle: `Standard` / `2D Office` (pixel-art top-down office, persisted)
 - 2D Office: desk + computer per agent; typing when running, roaming pantry/lounge/garden when idle,
