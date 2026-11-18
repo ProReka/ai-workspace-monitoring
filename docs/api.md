@@ -14,7 +14,7 @@
   windows[{label,used,total,remaining_pct,reset_at,reset_in}], worst_remaining, usage_ok`.
 - `router.combos[]`: `name, chain[{link,kind,status,detail}], verdict(ok/degraded/down/unknown)`.
 - `router.quotas[]`: flattened `{provider,account,window,used,total,remaining_pct,reset,status,last_error}`.
-- `router.endpoint_status`: `{endpoint: http_code}`. `meta`: workspace/ids, router_url+version,
+- `router.endpoint_status`: `{endpoint: http_code}`. `meta`: workspace/ids, office_tz, office_logo, router_url+version,
   multica_cli version, ecs cluster/region, refresh_s. No secrets.
 
 ## `GET /api/live`

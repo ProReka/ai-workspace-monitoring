@@ -28,6 +28,8 @@ Env (Dokploy → Environment, values are literal — **no quotes**):
 | `NINEROUTER_PASSWORD` | Only if the 9Router dashboard login is enabled (cookie session, auto-refreshed). Leave empty when 9Router has no password — data endpoints work without it |
 | `NINEROUTER_KEY` | Optional (only cross-checks `/v1/models`) |
 | `COMPANY_NAME` | Header white-label, no quotes |
+| `OFFICE_TZ` | 2D Office clock + daylight timezone (IANA), default `Asia/Jakarta` |
+| `OFFICE_LOGO_URL` | 2D Office plaque logo; empty = Multica workspace avatar, else workspace name |
 | `PORT=8080`, `REFRESH_S=60` | |
 
 Check container logs after deploy: the first snapshot prints

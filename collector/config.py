@@ -35,6 +35,9 @@ POLL_ROUTER_S = env_int("POLL_ROUTER_S", 15)
 POLL_ECS_S = env_int("POLL_ECS_S", 30)
 PORT = env_int("PORT", 8080)
 COMPANY_NAME = env("COMPANY_NAME", "Command Center")
+# 2D Office view: wall clock / daylight timezone, optional plaque logo (default: Multica workspace avatar).
+OFFICE_TZ = env("OFFICE_TZ", "Asia/Jakarta")
+OFFICE_LOGO_URL = env("OFFICE_LOGO_URL")
 
 # Daemon IDs treated as first-class (vs "stale" registrations).
 # Comma-separated, e.g. KNOWN_DAEMONS=main,backend,frontend. Empty = all known.

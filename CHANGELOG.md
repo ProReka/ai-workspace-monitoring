@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 
+## Unreleased
+
+- View Mode toggle: `Standard` / `2D Office` (pixel-art top-down office, persisted)
+- 2D Office: desk + computer per agent; typing when running, roaming pantry/lounge/garden when idle,
+  screen off while runtime offline; wall clock + daylight from `OFFICE_TZ` (default `Asia/Jakarta`)
+- Workspace plaque: `OFFICE_LOGO_URL` or Multica workspace avatar, falls back to name in Pixelify Sans
+
 ## v0.1.6 — 2026-10-11
 
 - Derive `remaining_pct` from used/total when 9Router omits it (e.g. Codex
