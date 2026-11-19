@@ -7,9 +7,9 @@ export const ROOM_W = 126;
 const POD_GAP = 8;
 const OUT_X = 170;
 const OUT_Y = 48;
-const BUCKET_LEISURE = 45;
-const BUCKET_AWAY = 180;
-const HOLD_S = 60;
+const BUCKET_S = 120;
+const HOLD_S = 300;
+const AWAY_AFTER_S = 600;
 
 export function hash(s) {
   let h = 0x811c9dc5;
@@ -155,10 +155,10 @@ export function routeFor(from, to, L) {
 }
 
 export function chooseAway(id, prev, L, nowS) {
-  if (prev && prev.zone !== 'desk' && Math.floor(nowS / BUCKET_AWAY) === prev.bucket) return prev;
+  const bucket = Math.floor(nowS / BUCKET_S);
+  if (prev && prev.zone !== 'desk' && bucket === prev.bucket) return prev;
   const pool = [...indoorSpots(L), ...outdoorSpots(L)];
-  const h = hash(id + ':' + Math.floor(nowS / BUCKET_AWAY));
-  return { ...pool[h % pool.length], bucket: Math.floor(nowS / BUCKET_AWAY) };
+  return { ...pool[hash(id + ':' + bucket) % pool.length], bucket };
 }
 
 export function plan(agents, L, prevBeh, nowS) {
@@ -170,25 +170,30 @@ export function plan(agents, L, prevBeh, nowS) {
     const work = a.running > 0;
     const pending = (a.pending_total || 0) > 0;
     let spot = desk, activity = 'idle';
-    let holdUntil = old && old.wasWorking && !work && !old.holdUntil ? nowS + HOLD_S : (old ? old.holdUntil || 0 : 0);
-    if (work) {
+    let idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
+    let holdUntil = old ? old.holdUntil || 0 : 0;
+    if (work) idleSince = nowS;
+    if (old && old.activity === 'work' && !work) holdUntil = nowS + HOLD_S;
+    if (!a.runtime_online) {
+      activity = 'offline'; holdUntil = 0; idleSince = nowS;
+    } else if (work) {
       activity = 'work'; holdUntil = 0;
     } else if (nowS < holdUntil) {
       activity = 'relax';
     } else if (pending) {
-      activity = 'queue';
-    } else if (!a.runtime_online) {
-      spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away';
+      activity = hash(id + ':q') % 100 < 45 ? 'leisure' : 'queue';
     } else {
-      const bucket = Math.floor(nowS / BUCKET_LEISURE);
-      if (hash(id + ':stay:' + bucket) % 100 < 58) activity = 'leisure';
+      const bucket = Math.floor(nowS / BUCKET_S);
+      const roll = hash(id + ':stay:' + bucket) % 100;
+      const mayLeave = nowS - idleSince >= AWAY_AFTER_S;
+      if (roll < (mayLeave ? 30 : 50)) activity = 'leisure';
+      else if (!mayLeave || roll < 55) activity = 'idle';
       else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
     }
-    if (activity === 'queue' && (hash(id + ':q') % 100) < 45) activity = 'leisure';
     const leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l') % 3] : '';
     const overload = work && pending;
     const route = routeFor(old && old.spot ? old.spot : desk, spot, L);
-    next[id] = { spot, activity, leisure, overload, holdUntil, wasWorking: work || activity === 'relax', route };
+    next[id] = { spot, activity, leisure, overload, holdUntil, idleSince, route };
   });
   return next;
 }

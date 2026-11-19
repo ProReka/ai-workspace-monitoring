@@ -7,14 +7,16 @@ const pointKey = (p) => Math.round(p.x) + ',' + Math.round(p.y);
 const routeKey = (r) => r.map(pointKey).join(' ');
 const legMs = (a, b) => Math.min(2600, Math.max(320, Math.hypot(b.x - a.x, b.y - a.y) * 15));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const MIN_K = 0.4;
+const MAX_K = 8;
 
-function Person({ lk, pose, activity }) {
+function Person({ lk, pose, activity, dim }) {
   const { skin, hair, shirt, pants } = lk;
   const shadow = R(-5, -1, 10, 2, 'rgba(0,0,0,.28)');
   const rest = activity !== 'work';
   const sit = pose === 'sit';
   return (
-    <g transform="scale(.84)">
+    <g transform="scale(.74)" opacity={dim ? 0.72 : 1}>
       {shadow}
       {pose === 'desk' ? (
         <>
@@ -51,11 +53,46 @@ function Person({ lk, pose, activity }) {
 
 
 function Actor({ a, b, route, onAgent }) {
+  const [pos, setPos] = useState(route[0] || b.spot);
+  const [leg, setLeg] = useState(null);
+  const posRef = useRef(pos);
+  const last = useRef('');
+  const key = routeKey(route);
+  useEffect(() => { posRef.current = pos; }, [pos]);
+  useEffect(() => {
+    if (key === last.current) return;
+    last.current = key;
+    if (route.length < 2) { setLeg(null); return; }
+    const pts = [posRef.current, ...route.slice(1)];
+    setLeg({ pts, i: 0, to: pts[1], ms: legMs(pts[0], pts[1]) });
+  }, [key]);
+  useEffect(() => {
+    if (!leg) return undefined;
+    const t = setTimeout(() => {
+      setPos(leg.to);
+      if (leg.i + 2 < leg.pts.length) {
+        const i = leg.i + 1;
+        setLeg({ pts: leg.pts, i, to: leg.pts[i + 1], ms: legMs(leg.pts[i], leg.pts[i + 1]) });
+      } else setLeg(null);
+    }, leg.ms);
+    return () => clearTimeout(t);
+  }, [leg]);
   const st = statusOf(a);
+  const walking = !!leg;
   return (
-    <g className="actor" onClick={() => onAgent(a.agent_id)} aria-hidden="true">
+    <g className={`actor${walking ? ' walking' : ''}${b.activity === 'work' && !walking ? ' typing' : ''}`}
+      style={{ transform: `translate(${pos.x}px, ${pos.y}px)`, transitionDuration: `${leg ? leg.ms : 0}ms` }}
+      onClick={() => onAgent(a.agent_id)} aria-hidden="true">
       <title>{`${a.agent_name} — ${st.label}`}</title>
+      <Person lk={look(a.agent_id)} pose={walking ? 'walk' : b.spot.pose} activity={b.activity} dim={!a.runtime_online} />
       <text className="olabel" y={-30} textAnchor="middle">{a.agent_name}</text>
+      {b.activity === 'work' && a.running > 1 && Array.from({ length: Math.min(2, a.running - 1) }, (_, i) =>
+        <g key={i} className="taskwin" transform={`translate(${i ? 15 : -19} ${-40 - i * 4})`}>
+          {R(0, 0, 14, 9, '#1d2b38')}{R(1, 1, 3, 1, '#4ade80')}{R(5, 1, 8, 1, '#a7f3d0')}{R(2, 4, 10, 1, '#86efac')}
+        </g>)}
+      {b.overload && <g className="overload" transform="translate(11 -34)">
+        {R(0, 0, 8, 8, '#c53030')}{R(3, 1, 2, 4, '#fff')}{R(3, 6, 2, 1, '#fff')}
+      </g>}
     </g>
   );
 }
@@ -187,17 +224,32 @@ function Yard({ L, k }) {
       trees.push([x, y, 0.7 + ((h >>> 8) % 10) / 10]);
     }
   }
+  const path = [];
+  for (let y = L.BY + L.H + 2; y < L.BY + L.H + 74; y += 8) path.push(R(L.BX + L.doorX - 7 + ((y / 8) % 2) * 2, y, 12, 6, '#c9c2a8', { key: 'p' + y }));
+  const flora = [];
+  for (let i = 0; i < 44; i++) {
+    const h = hash('flora:' + i);
+    const x = (h % L.VW), y = L.BY + L.H + 6 + ((h >>> 9) % (L.VH - L.BY - L.H - 12));
+    if (Math.abs(x - (L.BX + L.doorX)) < 16 && y < L.BY + L.H + 80) continue;
+    flora.push([x, y, ['#e8618c', '#f2c14e', '#ffffff', '#b57edc', '#ff8c42'][(h >>> 20) % 5], i % 4 ? 1 : 0]);
+  }
   const lamps = [];
   for (let x = L.BX + 40; x < L.BX + L.W; x += 110) lamps.push(x);
   return (
     <g>
       {R(0, 0, L.VW, L.VH, 'url(#oGrass)')}
+      {path}
+      {flora.map(([x, y, c, t], i) => (t
+        ? <g key={'f' + i}>{R(x, y, 3, 3, c)}{R(x + 1, y + 1, 1, 1, '#ffe27a')}{R(x + 1, y + 3, 1, 2, '#3f7a35')}</g>
+        : <g key={'b' + i}>{R(x - 6, y - 2, 12, 7, '#2f6b2f')}{R(x - 4, y - 4, 8, 3, '#3f8a3a')}{R(x - 2, y - 2, 3, 2, '#5fb352')}</g>))}
+      {R(L.BX + 16, L.BY + L.H + 30, 22, 3, '#7a5432')}{R(L.BX + 17, L.BY + L.H + 33, 2, 4, '#4a3320')}{R(L.BX + 35, L.BY + L.H + 33, 2, 4, '#4a3320')}
+      {R(L.BX + L.W - 38, L.BY + L.H + 30, 22, 3, '#7a5432')}{R(L.BX + L.W - 37, L.BY + L.H + 33, 2, 4, '#4a3320')}{R(L.BX + L.W - 19, L.BY + L.H + 33, 2, 4, '#4a3320')}
       {trees.map(([x, y, s], i) => <Tree key={i} x={x} y={y} s={s} />)}
       {lamps.map((x, i) => <g key={i}>
         {R(x - 2, L.BY + L.H + 2, 4, 16, '#4a4f5c')}
-        {night > 0.3 && <circle cx={x} cy={L.BY + L.H + 4} r={17} fill="#ffd98a" opacity={night * 0.3} shapeRendering="auto" pointerEvents="none" />}
+        {night > 0.3 && <circle cx={x} cy={L.BY + L.H + 4} r={30} fill="url(#oGlow)" pointerEvents="none" />}
       </g>)}
-      <path d={`M0 0H${L.VW}V${L.VH}H0Z M${L.BX} ${L.BY}h${L.W}v${L.H}h-${L.W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.55} pointerEvents="none" />
+      <path d={`M0 0H${L.VW}V${L.VH}H0Z M${L.BX} ${L.BY}h${L.W}v${L.H}h-${L.W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.6} pointerEvents="none" />
     </g>
   );
 }
@@ -222,16 +274,39 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
   for (let x = 10; x + 30 <= plaqueCx - 76; x += 50) wins.push(x);
   for (let x = plaqueCx + 76; x + 30 <= L.openRight - 10; x += 50) wins.push(x);
   const shift = (k.sunX - 0.5) * -50;
+  const lit = k.night > 0.3;
+  const fix = [];
+  for (let x = 24; x < L.openRight - 10; x += 60) for (let y = L.top + 30; y < L.openBottom; y += 80) fix.push([x, y]);
+  fix.push([L.roomX + 54, L.pantryY + 46], [L.roomX + 54, L.loungeY + 44], [L.openRight / 2, L.corridorY + 30], [L.doorX, L.H - 16]);
+  const lamp = (<g pointerEvents="none">
+    {fix.map(([x, y], i) => <g key={i}>
+      {R(x - 3, y - 1, 6, 2, '#3a3f4a')}{R(x - 2, y + 1, 4, 1, lit ? '#fff1b8' : '#cfd3da')}
+      {lit && <circle cx={x} cy={y + 6} r={46} fill="url(#oGlow)" />}
+    </g>)}
+    {lit && R(0, WALL_H, L.W, L.H - WALL_H, '#ffd98a', { opacity: 0.07 })}
+  </g>);
+  const orn = (<g>
+    {R(L.openRight - 70, WALL_H + 8, 14, 12, '#6b4a2b')}{R(L.openRight - 69, WALL_H + 9, 12, 5, '#e0b84f')}{R(L.openRight - 69, WALL_H + 15, 12, 4, '#e07a5f')}
+    {R(L.roomX + 2, L.pantryY + 70, 10, 14, '#6b4a2b')}{R(L.roomX + 4, L.pantryY + 72, 6, 3, '#e0b84f')}
+    {R(L.roomX + 98, L.loungeY + 56, 6, 4, '#8f4a2c')}{R(L.roomX + 97, L.loungeY + 50, 8, 6, '#4b8a3a')}{R(L.roomX + 99, L.loungeY + 47, 4, 3, '#5fb352')}
+    {R(L.roomX + 4, L.loungeY + 56, 6, 4, '#8f4a2c')}{R(L.roomX + 3, L.loungeY + 50, 8, 6, '#4b8a3a')}{R(L.roomX + 5, L.loungeY + 47, 4, 3, '#5fb352')}
+    {R(L.roomX + 36, L.loungeY + 2, 22, 10, '#f4f1e8')}{R(L.roomX + 38, L.loungeY + 4, 18, 6, '#6fb3ff')}{R(L.roomX + 38, L.loungeY + 8, 18, 2, '#4b8a3a')}
+    {R(L.roomX + 70, L.pantryY + 40, 12, 12, '#f4f1e8')}{R(L.roomX + 72, L.pantryY + 42, 8, 8, '#d17a49')}
+    {R(8, L.corridorY + 2, 10, 10, '#4b8a3a')}{R(10, L.corridorY + 12, 6, 5, '#8f4a2c')}
+    {R(L.openRight - 16, L.corridorY + 2, 10, 10, '#5fb352')}{R(L.openRight - 14, L.corridorY + 12, 6, 5, '#8f4a2c')}
+    {R(L.doorX - 34, L.H - 14, 10, 8, '#4b8a3a')}{R(L.doorX - 32, L.H - 7, 6, 4, '#8f4a2c')}
+    {R(L.doorX + 24, L.H - 14, 10, 8, '#4b8a3a')}{R(L.doorX + 26, L.H - 7, 6, 4, '#8f4a2c')}
+    {R(L.doorX - 24, L.H - 6, 48, 3, '#7c4f86')}
+  </g>);
   return (
     <g transform={`translate(${L.BX} ${L.BY})`}>
-      {R(-3, -3, L.W + 6, L.H + 6, 'rgba(20,15,10,.25)')}
       {R(0, 0, L.W, WALL_H, '#cfc3b0')}
       {R(0, WALL_H - 4, L.W, 4, '#7a5a46')}
       {R(0, 0, L.W, 4, '#e6dfd1')}
       {R(0, WALL_H, 4, L.H - WALL_H, '#a8896a')}
       {R(L.W - 4, WALL_H, 4, L.H - WALL_H, '#a8896a')}
       {R(0, 0, L.W, L.H, 'url(#oWood)')}
-      {R(L.roomX, L.pantryY, ROOM_W - 16, L.pantryH, 'url(#oTile)')}
+      {R(L.roomX, L.pantryY, ROOM_W - 16, L.pantryH, 'url(#oTileP)')}
       {R(L.roomX, L.loungeY, ROOM_W - 16, L.corridorY - L.loungeY - 8, 'url(#oRug)')}
       {R(0, L.corridorY, L.openRight + 4, L.H - L.corridorY, 'url(#oTile)')}
       {R(0, 6, L.W, 30, 'url(#oSky)')}
@@ -293,6 +368,8 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       {R(L.openRight - 24, WALL_H + 12, 8, 2, '#d97706')}
       {R(L.doorX - 16, L.H - 3, 32, 3, '#c9a227')}
       <RoomDoor x={L.doorX} y={L.H - 2} label="EXIT" />
+      {orn}
+      {lamp}
       {children}
     </g>
   );
@@ -335,14 +412,14 @@ export default function Office({ snap, now, onAgent, tz }) {
 
   useEffect(() => {
     if (!stageSz || fitted) return;
-    const nk = clamp(stageSz.h / L.H, 0.5, 6);
-    const ty = cy * (1 - nk) - L.BY * nk;
-    setView({ k: nk, tx: 0, ty });
+    const s0 = Math.min(stageSz.w / L.VW, stageSz.h / L.VH);
+    const nk = clamp(Math.min(stageSz.w / (L.W * s0), stageSz.h / (L.H * s0)), MIN_K, MAX_K);
+    setView({ k: nk, tx: 0, ty: 0 });
     setFitted(true);
   }, [stageSz, L, fitted]);
 
   const zoomAt = (factor, p) => setView((v) => {
-    const nk = clamp(v.k * factor, 0.5, 6);
+    const nk = clamp(v.k * factor, MIN_K, MAX_K);
     const q = p || { x: cx, y: cy };
     return { k: nk, tx: v.tx + (v.k - nk) * (q.x - cx), ty: v.ty + (v.k - nk) * (q.y - cy) };
   });
@@ -395,6 +472,10 @@ export default function Office({ snap, now, onAgent, tz }) {
             <pattern id="oTile" width="12" height="12" patternUnits="userSpaceOnUse">
               {R(0, 0, 12, 12, '#d9dde2')}{R(0, 0, 6, 6, '#c8cdd4')}{R(6, 6, 6, 6, '#c8cdd4')}
             </pattern>
+            <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.55} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
+            <pattern id="oTileP" width="12" height="12" patternUnits="userSpaceOnUse">
+              {R(0, 0, 12, 12, '#e9dcb8')}{R(0, 0, 6, 6, '#dccb9c')}{R(6, 6, 6, 6, '#dccb9c')}
+            </pattern>
             <pattern id="oRug" width="6" height="6" patternUnits="userSpaceOnUse">
               {R(0, 0, 6, 6, '#7c4f86')}{R(0, 0, 3, 3, '#8a5c94')}
             </pattern>
@@ -406,7 +487,6 @@ export default function Office({ snap, now, onAgent, tz }) {
             </OfficeRoom>
             <g pointerEvents="none">
               {agents.map((a, i) => <Screen key={a.agent_id} a={a} b={beh[a.agent_id] || {}} d={{ x: L.BX + L.desks[i].x, y: L.BY + L.desks[i].y }} />)}
-              {k.night > 0.3 && agents.map((a, i) => <circle key={'l'+i} cx={L.BX + L.desks[i].x + 30} cy={L.BY + L.desks[i].y - 2} r={14} fill="#ffd98a" opacity={k.night * 0.14} pointerEvents="none" />)}
             </g>
             {order.map((a) => {
               const b = beh[a.agent_id];

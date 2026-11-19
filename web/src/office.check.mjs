@@ -70,12 +70,33 @@ const stopped = agents.map((a, i) => (i === 0 ? { ...a, running: 0 } : a));
 b = plan(stopped, L, b, 1005);
 assert.equal(b.a0.activity, 'relax');
 assert.ok(b.a0.holdUntil > 1005);
-b = plan(stopped, L, b, 1070);
+assert.ok(b.a0.holdUntil - 1005 >= 300, 'long post-work hold');
+for (let t = 1010; t < 1005 + 300; t += 10) {
+  b = plan(stopped, L, b, t);
+  assert.equal(b.a0.spot.zone, 'desk', 'stays at desk during hold');
+}
+b = plan(stopped, L, b, 1400);
 assert.notEqual(b.a0.activity, 'relax');
-assert.ok(Object.values(b).some((x) => x.spot.zone !== 'desk'));
+assert.equal(b.a0.spot.zone, 'desk', 'still no leaving soon after hold');
+let left = false;
+for (let t = 1400; t < 1400 + 3600 && !left; t += 120) {
+  b = plan(stopped, L, b, t);
+  if (b.a0.spot.zone !== 'desk') left = true;
+}
+assert.ok(left, 'idle agent leaves eventually');
 const offline = agents.map((a, i) => (i === 3 ? { ...a, runtime_online: false } : a));
+for (const seed of [null, b]) {
+  const o = plan(offline, L, seed, 2000);
+  assert.equal(o.a3.activity, 'offline');
+  assert.equal(o.a3.spot.zone, 'desk', 'offline runtime stays at desk');
+}
 b = plan(offline, L, null, 2000);
-assert.equal(b.a3.activity, 'away');
+b = plan(agents, L, b, 2010);
+assert.notEqual(b.a3.activity, 'offline', 'back on when runtime returns');
+const busy = plan(agents, L, null, 3000);
+assert.equal(busy.a0.overload, false);
+const ov = agents.map((a, i) => (i === 0 ? { ...a, pending_total: 2 } : a));
+assert.equal(plan(ov, L, null, 3000).a0.overload, true, 'pending while working = overload');
 
 assert.deepEqual(wrapName('Technical Lead - Tanto'), ['Technical', 'Lead - Tanto']);
 assert.deepEqual(wrapName('Nova'), ['Nova']);
