@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusOf } from './fmt.js';
-import { ROOM_W, WALL_H, hash, layout, look, plan, sky, tzClock, wrapName } from './office.js';
+import { ROOM_W, WALL_H, hash, layout, legMs, look, plan, sky, tzClock, wrapName } from './office.js';
 
 const R = (x, y, w, h, fill, { key, ...rest } = {}) => <rect key={key} x={x} y={y} width={w} height={h} fill={fill} {...rest} />;
 const pointKey = (p) => Math.round(p.x) + ',' + Math.round(p.y);
 const routeKey = (r) => r.map(pointKey).join(' ');
-const legMs = (a, b) => Math.min(2600, Math.max(320, Math.hypot(b.x - a.x, b.y - a.y) * 15));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const MIN_K = 0.4;
 const MAX_K = 8;
@@ -300,15 +299,21 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
   </g>);
   return (
     <g transform={`translate(${L.BX} ${L.BY})`}>
+      {R(0, 0, L.W, L.H, 'url(#oOpen)')}
+      {R(0, L.corridorY, L.openRight + 4, L.H - L.corridorY, 'url(#oCorridor)')}
+      {R(L.doorX - 70, L.corridorY, 140, L.H - L.corridorY, 'url(#oLobby)')}
+      {R(L.roomX, L.pantryY, ROOM_W - 16, L.pantryH, 'url(#oTileP)')}
+      {R(L.roomX, L.loungeY, ROOM_W - 16, L.corridorY - L.loungeY - 8, 'url(#oRug)')}
       {R(0, 0, L.W, WALL_H, '#cfc3b0')}
       {R(0, WALL_H - 4, L.W, 4, '#7a5a46')}
       {R(0, 0, L.W, 4, '#e6dfd1')}
       {R(0, WALL_H, 4, L.H - WALL_H, '#a8896a')}
       {R(L.W - 4, WALL_H, 4, L.H - WALL_H, '#a8896a')}
-      {R(0, 0, L.W, L.H, 'url(#oWood)')}
-      {R(L.roomX, L.pantryY, ROOM_W - 16, L.pantryH, 'url(#oTileP)')}
-      {R(L.roomX, L.loungeY, ROOM_W - 16, L.corridorY - L.loungeY - 8, 'url(#oRug)')}
-      {R(0, L.corridorY, L.openRight + 4, L.H - L.corridorY, 'url(#oTile)')}
+      {R(0, L.H - 4, L.doorX - 16, 4, '#a8896a')}
+      {R(L.doorX + 16, L.H - 4, L.W - L.doorX - 16, 4, '#a8896a')}
+      {R(L.roomX - 2, WALL_H, 2, L.pantryDoorY - 13 - WALL_H, '#a8896a')}
+      {R(L.roomX - 2, L.pantryDoorY + 13, 2, L.loungeDoorY - L.pantryDoorY - 26, '#a8896a')}
+      {R(L.roomX - 2, L.loungeDoorY + 13, 2, L.corridorY - L.loungeDoorY - 13, '#a8896a')}
       {R(0, 6, L.W, 30, 'url(#oSky)')}
       {Array.from({ length: 12 }, (_, i) => R((i * 61) % L.W, 9 + ((i * 7) % 20), 1, 1, '#fff', { key: i, opacity: (1 - k.day) * 0.9 }))}
       {k.alt > -0.1 && R(k.sunX * L.W - 4, 30 - Math.max(0, k.alt) * 20, 8, 8, '#ffd34d')}
@@ -331,11 +336,11 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       {R(L.roomDoorX - 3, L.loungeDoorY - 13, 6, 26, '#cfc3b0')}
       <RoomDoor x={L.roomDoorX} y={L.pantryDoorY} label="PANTRY" vertical />
       <RoomDoor x={L.roomDoorX} y={L.loungeDoorY} label="LOUNGE" vertical />
-      {R(L.roomX - 2, L.pantryY, 2, L.pantryH, '#a8896a')}
-      {R(L.roomX - 2, L.loungeY, 2, L.corridorY - L.loungeY, '#a8896a')}
       <text className="roomtag" x={L.roomX + 54} y={L.pantryY + 12} textAnchor="middle">PANTRY</text>
       <text className="roomtag" x={L.roomX + 54} y={L.loungeY + 12} textAnchor="middle">LOUNGE</text>
-      <text className="roomtag" x={L.openRight / 2} y={L.corridorY + 10} textAnchor="middle">OPEN SPACE</text>
+      <text className="roomtag" x={L.openRight / 2} y={L.top - 4} textAnchor="middle">OPEN SPACE</text>
+      <text className="roomtag" x={L.openRight / 2} y={L.corridorY + 10} textAnchor="middle">CORRIDOR</text>
+      <text className="roomtag" x={L.doorX} y={L.H - 10} textAnchor="middle">LOBBY</text>
 
       {R(L.roomX + 6, L.pantryY + 8, 18, 24, '#5c6b78')}{R(L.roomX + 8, L.pantryY + 10, 14, 8, '#2e2e33')}
       {R(L.roomX + 10, L.pantryY + 18, 3, 3, '#d9483b')}{R(L.roomX + 16, L.pantryY + 18, 3, 3, '#4ade80')}
@@ -464,13 +469,16 @@ export default function Office({ snap, now, onAgent, tz }) {
               <stop offset="0" stopColor={k.top} /><stop offset="1" stopColor={k.bottom} />
             </linearGradient>
             <pattern id="oGrass" width="12" height="12" patternUnits="userSpaceOnUse">
-              {R(0, 0, 12, 12, '#5a9c45')}{R(2, 3, 1, 2, '#6fb655')}{R(7, 7, 1, 2, '#4b8a3a')}{R(5, 1, 1, 1, '#79c25e')}
+              {R(0, 0, 12, 12, '#616e5c')}{R(2, 3, 1, 2, '#6d7b66')}{R(7, 7, 1, 2, '#56634f')}{R(5, 1, 1, 1, '#77836d')}
             </pattern>
-            <pattern id="oWood" width="16" height="8" patternUnits="userSpaceOnUse">
-              {R(0, 0, 16, 8, '#8a6a4c')}{R(0, 0, 16, 1, '#7d5f43')}{R(9, 0, 1, 8, '#7d5f43')}{R(0, 4, 16, 1, '#93724f')}
+            <pattern id="oOpen" width="16" height="16" patternUnits="userSpaceOnUse">
+              {R(0, 0, 16, 16, '#5d7280')}{R(0, 0, 16, 1, '#536976')}{R(0, 8, 16, 1, '#536976')}{R(8, 0, 1, 16, '#668091')}
             </pattern>
-            <pattern id="oTile" width="12" height="12" patternUnits="userSpaceOnUse">
-              {R(0, 0, 12, 12, '#d9dde2')}{R(0, 0, 6, 6, '#c8cdd4')}{R(6, 6, 6, 6, '#c8cdd4')}
+            <pattern id="oCorridor" width="12" height="12" patternUnits="userSpaceOnUse">
+              {R(0, 0, 12, 12, '#c9c6bd')}{R(0, 0, 6, 6, '#bdb9af')}{R(6, 6, 6, 6, '#bdb9af')}
+            </pattern>
+            <pattern id="oLobby" width="14" height="14" patternUnits="userSpaceOnUse">
+              {R(0, 0, 14, 14, '#d8c8a8')}{R(0, 0, 7, 7, '#cbb995')}{R(7, 7, 7, 7, '#cbb995')}
             </pattern>
             <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.55} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
             <pattern id="oTileP" width="12" height="12" patternUnits="userSpaceOnUse">
