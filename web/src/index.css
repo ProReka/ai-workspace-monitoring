@@ -405,8 +405,6 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .office .actor.walking .torso { animation: obob .34s steps(1) infinite; }
 .office .actor.typing .a1 { animation: otype .18s steps(1) infinite; }
 .office .actor.typing .a2 { animation: otype .18s steps(1) infinite .09s; }
-.office .arm.rest { transform: rotate(-12deg); transform-origin: 5px 14px; }
-.office .arm.rest2 { transform: rotate(12deg) translateY(2px); transform-origin: -5px 14px; }
 .office .scr.s-work .code { animation: oscroll .55s steps(1) infinite; }
 .office .scr .fun { animation: ofun 1.4s steps(2) infinite; }
 .office .blink { animation: pulse 1.1s steps(2) infinite; }
