@@ -10,7 +10,7 @@ assert.equal(sky(0).day, 0);
 
 const L = layout(8);
 assert.equal(L.desks.length, 8);
-assert.ok(L.VW > L.W + 200 && L.VH > L.H, 'croppable grass around a centered building');
+assert.ok(L.VW > L.W + 200 && L.VH > L.H, 'dark ground around a centered building');
 const agents = Array.from({ length: 8 }, (_, i) => ({
   agent_id: 'a' + i, runtime_online: true, running: i < 2 ? 1 : 0, pending_total: i === 2 ? 3 : 0,
 }));
@@ -38,6 +38,11 @@ assert.ok(Object.values(spawn).some((s) => s.spot.zone !== 'desk'), 'fresh load 
 assert.ok(Object.values(spawn).some((s) => s.spot.zone === 'desk'), 'fresh load keeps some agents at desk');
 const still = plan(idleOnly, L, spawn, 5001);
 assert.ok(Object.keys(spawn).every((id) => spawn[id].spot.key === still[id].spot.key), 'agents keep position between ticks');
+assert.ok(Object.values({ ...spawn, ...still }).every((s) => s.spot.zone !== 'outside'), 'agents stay indoors');
+const fridge = { x0: L.BX + L.roomX + 6, x1: L.BX + L.roomX + 24, y0: L.BY + L.pantryY + 8, y1: L.BY + L.pantryY + 32 };
+for (const spot of indoors.filter((s) => s.zone === 'pantry')) {
+  assert.ok(!(spot.x >= fridge.x0 && spot.x <= fridge.x1 && spot.y >= fridge.y0 && spot.y <= fridge.y1), `pantry spot on fridge: ${spot.key}`);
+}
 for (const from of starts) {
   for (const to of starts) {
     if (from === to) continue;

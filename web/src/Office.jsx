@@ -11,41 +11,39 @@ const MAX_K = 8;
 
 function Person({ lk, pose, activity, dim }) {
   const { skin, hair, shirt, pants } = lk;
-  const shadow = R(-5, -1, 10, 2, 'rgba(0,0,0,.28)');
   const rest = activity !== 'work';
-  const sit = pose === 'sit';
+  const sit = pose === 'sit' || pose === 'desk' || pose === 'cup';
+  const head = (<g>
+    {R(-5, -24, 1, 3, hair)}{R(4, -24, 1, 3, hair)}
+    {R(-4, -26, 8, 8, skin)}{R(-4, -27, 8, 3, hair)}{R(-5, -26, 2, 5, hair)}{R(3, -26, 2, 3, hair)}
+    {R(-2, -22, 1, 2, '#20232b')}{R(1, -22, 1, 2, '#20232b')}{R(-1, -19, 2, 1, 'rgba(0,0,0,.45)')}
+    {lk.deco === 0 && <>{R(-4, -23, 8, 1, '#2b2f38')}{R(-4, -23, 2, 1, '#2b2f38')}{R(2, -23, 2, 1, '#2b2f38')}</>}
+    {lk.deco === 1 && R(4, -25, 2, 3, '#e2b04a')}
+  </g>);
+  const legs = sit ? (<g>
+    {R(-5, -9, 10, 4, pants)}{R(-5, -9, 10, 1, 'rgba(255,255,255,.12)')}
+    {R(-5, -5, 3, 5, pants)}{R(2, -5, 3, 5, pants)}
+    {R(-6, -1, 4, 2, '#1b1b1f')}{R(2, -1, 4, 2, '#1b1b1f')}
+  </g>) : (<g className="legs">
+    <g className="leg l1">{R(-4, -10, 3, 9, pants)}{R(-5, -2, 4, 2, '#1b1b1f')}</g>
+    <g className="leg l2">{R(1, -10, 3, 9, pants)}{R(1, -2, 4, 2, '#1b1b1f')}</g>
+  </g>);
   return (
-    <g transform="scale(.74)" opacity={dim ? 0.72 : 1}>
-      {shadow}
-      {pose === 'desk' ? (
-        <>
-          {R(-5, -15, 10, 9, shirt)}
-          <g className={rest ? 'arm rest' : 'arm a1'}>{R(-7, -17, 2, 6, shirt)}{R(-7, -19, 2, 2, skin)}</g>
-          <g className={rest ? 'arm rest2' : 'arm a2'}>{R(5, -17, 2, 6, shirt)}{R(5, -19, 2, 2, skin)}</g>
-          {R(-4, -23, 8, 8, hair)}{R(-5, -20, 1, 2, skin)}{R(4, -20, 1, 2, skin)}
-          {R(-6, -8, 12, 5, '#33363f')}{R(-6, -8, 12, 1, '#4a4f5c')}
-        </>
-      ) : (
-        <>
-          {sit ? (
-            <g className="legs">
-              {R(-4, -7, 8, 3, pants)}{R(-4, -4, 3, 3, pants)}{R(1, -4, 3, 3, pants)}{R(-4, -1, 3, 1, '#1b1b1f')}{R(1, -1, 3, 1, '#1b1b1f')}
-            </g>
-          ) : (
-            <g className="legs">
-              <g className="leg l1">{R(-4, -7, 3, 6, pants)}{R(-4, -1, 3, 1, '#1b1b1f')}</g>
-              <g className="leg l2">{R(1, -7, 3, 6, pants)}{R(1, -1, 3, 1, '#1b1b1f')}</g>
-            </g>
-          )}
-          <g className="torso">
-            {R(-5, -15, 10, 9, shirt)}{R(-7, -14, 2, 7, shirt)}{R(5, -14, 2, 7, shirt)}
-            {R(-7, -8, 2, 2, skin)}{R(5, -8, 2, 2, skin)}
-            {pose === 'cup' && <>{R(6, -11, 3, 3, '#f1f1f1')}{R(9, -10, 1, 2, '#f1f1f1')}{R(6, -11, 3, 1, '#6b3e1f')}</>}
-            {R(-4, -23, 8, 8, skin)}{R(-4, -24, 8, 3, hair)}{R(-5, -23, 1, 4, hair)}{R(4, -23, 1, 4, hair)}
-            {R(-2, -19, 1, 2, '#1b1b1f')}{R(1, -19, 1, 2, '#1b1b1f')}
-          </g>
-        </>
-      )}
+    <g transform="scale(.78)" opacity={dim ? 0.72 : 1}>
+      {R(-6, -1, 12, 2, 'rgba(0,0,0,.28)')}
+      {legs}
+      {R(-5, -9, 10, 3, '#262a33')}
+      <g className="torso">
+        {R(-5, -19, 10, 11, shirt)}{R(-5, -19, 10, 1, 'rgba(255,255,255,.22)')}
+        {R(-2, -19, 4, 2, 'rgba(255,255,255,.3)')}{R(-1, -17, 2, 5, 'rgba(0,0,0,.12)')}
+        {R(-6, -18, 2, 8, shirt)}{R(4, -18, 2, 8, shirt)}
+        <g className={rest ? 'arm rest' : 'arm a1'}>{R(-7, -18, 3, 8, shirt)}{R(-7, -11, 3, 3, skin)}</g>
+        <g className={rest ? 'arm rest2' : 'arm a2'}>{R(4, -18, 3, 8, shirt)}{R(4, -11, 3, 3, skin)}</g>
+        {pose === 'cup' && <>{R(7, -14, 3, 4, '#f4f1e8')}{R(7, -14, 3, 1, '#6b3e1f')}{R(10, -13, 1, 2, '#f4f1e8')}</>}
+        {lk.deco === 2 && R(-4, -16, 3, 4, '#e7e2d3')}
+        {head}
+      </g>
+      {pose === 'desk' && R(-6, -10, 12, 3, '#2b2f38')}
     </g>
   );
 }
@@ -131,9 +129,9 @@ function Screen({ a, b, d }) {
 function Chair({ x, y }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      {R(10, 50, 20, 7, '#5c4a39')}
-      {R(12, 40, 16, 10, '#6b5b45')}
-      {R(10, 52, 2, 2, '#4a4f5c')}{R(28, 52, 2, 2, '#4a4f5c')}
+      {R(15, 30, 18, 9, '#5b4a38')}{R(16, 31, 16, 7, '#6d5c47')}{R(16, 31, 16, 1, '#8b785e')}
+      {R(14, 39, 20, 7, '#6b5b45')}{R(15, 39, 18, 1, '#8b785e')}{R(14, 45, 20, 1, '#443a2e')}
+      {R(15, 46, 2, 4, '#4a4f5c')}{R(31, 46, 2, 4, '#4a4f5c')}
     </g>
   );
 }
@@ -149,19 +147,21 @@ function Desk({ a, b, d, onAgent }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
       transform={`translate(${d.x} ${d.y})`}>
       <title>{label.replace('. Activate for details.', '')}</title>
-      <Chair x={10} y={0} />
+      <Chair x={0} y={0} />
       {R(2, 0, 44, 57, 'transparent', { className: 'hit' })}
-      {R(4, 12, 40, 16, '#a8794a')}{R(4, 12, 40, 1, '#c4935e')}{R(4, 28, 40, 3, '#7a5432')}
-      {R(6, 31, 2, 4, '#5e3f24')}{R(40, 31, 2, 4, '#5e3f24')}
-      {R(14, 1, 20, 13, '#2b2f38')}{R(22, 14, 4, 2, '#2b2f38')}{R(19, 15, 10, 1, '#2b2f38')}
+      {R(4, 12, 40, 16, '#a8794a')}{R(4, 12, 40, 1, '#c4935e')}{R(4, 27, 40, 1, '#c4935e')}{R(4, 28, 40, 3, '#7a5432')}
+      {R(6, 31, 2, 5, '#5e3f24')}{R(40, 31, 2, 5, '#5e3f24')}
+      {R(14, 0, 20, 14, '#22262e')}{R(15, 1, 18, 12, '#303743')}{R(16, 2, 16, 10, SCREEN[scr])}
+      {R(22, 14, 4, 2, '#4b525e')}{R(18, 16, 12, 1, '#4b525e')}
       {R(33, 12, 1, 1, scr === 'off' ? '#3a1d1d' : '#4ae37d')}
-      {R(17, 20, 14, 4, '#d9dce3')}{R(17, 23, 14, 1, '#9aa0ab')}
-      {R(33, 21, 3, 3, '#e6e6e6')}
-      {lk.deco === 0 && <>{R(7, 14, 5, 5, '#3f8a3a')}{R(8, 18, 3, 3, '#a0522d')}</>}
-      {lk.deco === 1 && <>{R(7, 15, 6, 4, '#f4f1de')}{R(8, 16, 4, 1, '#c9c3a8')}</>}
-      {lk.deco === 2 && <>{R(38, 14, 4, 4, '#e07a5f')}{R(39, 15, 2, 1, '#fff')}</>}
-      {lk.deco === 3 && <>{R(37, 14, 2, 6, '#1e1e1e')}{R(36, 13, 4, 2, '#f2c14e')}</>}
-      <text className="plate" x={24} y={51} textAnchor="middle">
+      {R(15, 20, 18, 5, '#d9dce3')}{R(15, 20, 18, 1, '#f4f6f8')}
+      {[0, 1, 2, 3, 4, 5].map((k) => R(17 + k * 3, 21, 2, 1, '#8b929d', { key: k }))}
+      {R(35, 20, 4, 3, '#e8eaee')}{R(36, 21, 2, 1, '#9aa0ab')}
+      {lk.deco === 0 && <>{R(7, 15, 5, 5, '#3f8a3a')}{R(8, 19, 3, 3, '#a0522d')}{R(8, 14, 2, 1, '#5fb352')}</>}
+      {lk.deco === 1 && <>{R(7, 15, 6, 4, '#f4f1de')}{R(8, 16, 4, 1, '#c9c3a8')}{R(13, 14, 2, 5, '#e8e3d2')}</>}
+      {lk.deco === 2 && <>{R(38, 14, 4, 4, '#e07a5f')}{R(39, 15, 2, 1, '#fff')}{R(38, 18, 4, 1, '#b6533c')}</>}
+      {lk.deco === 3 && <>{R(37, 13, 3, 7, '#1e1e1e')}{R(36, 12, 5, 2, '#f2c14e')}{R(37, 14, 2, 1, '#5c6068')}</>}
+      <text className="plate" x={24} y={53} textAnchor="middle">
         {wrapName(a.agent_name, 12).map((l, i) => <tspan key={i} x={24} dy={i ? 4.6 : 0}>{l}</tspan>)}
       </text>
     </g>
@@ -204,8 +204,10 @@ function WallClock({ x, y, c }) {
 function Tree({ x, y, s }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
-      {R(-9, 3, 18, 4, 'rgba(0,0,0,.18)')}{R(-2, -2, 4, 8, '#6b4a2b')}
-      {R(-10, -12, 20, 12, '#2f6b2f')}{R(-7, -17, 14, 5, '#3a7f38')}{R(-4, -13, 8, 6, '#4f9a44')}{R(-2, -15, 4, 3, '#5fb352')}
+      {R(-11, 3, 22, 4, 'rgba(0,0,0,.32)')}{R(-3, -3, 6, 10, '#59432c')}{R(-2, -2, 2, 8, '#7a5b3a')}
+      {R(-5, -4, 3, 2, '#59432c')}{R(2, -6, 3, 2, '#59432c')}
+      {R(-11, -13, 22, 13, '#223e2c')}{R(-9, -15, 18, 13, '#2d5438')}{R(-7, -19, 14, 6, '#386445')}
+      {R(-4, -17, 8, 5, '#487b51')}{R(-2, -19, 4, 3, '#5a9360')}{R(-8, -11, 4, 2, '#487b51')}{R(4, -9, 4, 2, '#3b6b47')}
     </g>
   );
 }
@@ -230,13 +232,13 @@ function Yard({ L, k }) {
     const h = hash('flora:' + i);
     const x = (h % L.VW), y = L.BY + L.H + 6 + ((h >>> 9) % (L.VH - L.BY - L.H - 12));
     if (Math.abs(x - (L.BX + L.doorX)) < 16 && y < L.BY + L.H + 80) continue;
-    flora.push([x, y, ['#e8618c', '#f2c14e', '#ffffff', '#b57edc', '#ff8c42'][(h >>> 20) % 5], i % 4 ? 1 : 0]);
+    flora.push([x, y, ['#8c7b62', '#a08a67', '#b9ae9a', '#786f8c', '#9a7458'][(h >>> 20) % 5], i % 4 ? 1 : 0]);
   }
   const lamps = [];
   for (let x = L.BX + 40; x < L.BX + L.W; x += 110) lamps.push(x);
   return (
     <g>
-      {R(0, 0, L.VW, L.VH, 'url(#oGrass)')}
+      {R(0, 0, L.VW, L.VH, 'url(#oGround)')}
       {path}
       {flora.map(([x, y, c, t], i) => (t
         ? <g key={'f' + i}>{R(x, y, 3, 3, c)}{R(x + 1, y + 1, 1, 1, '#ffe27a')}{R(x + 1, y + 3, 1, 2, '#3f7a35')}</g>
@@ -272,6 +274,7 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
   const wins = [];
   for (let x = 10; x + 30 <= plaqueCx - 76; x += 50) wins.push(x);
   for (let x = plaqueCx + 76; x + 30 <= L.openRight - 10; x += 50) wins.push(x);
+  wins.push(L.roomX + 22);
   const shift = (k.sunX - 0.5) * -50;
   const lit = k.night > 0.3;
   const fix = [];
@@ -322,10 +325,14 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
         {R(16, 14, 18, 4, '#fff')}{R(20, 11, 10, 3, '#fff')}{R(L.W * 0.62, 20, 22, 4, '#fff')}
       </g>
       <path d={`M0 0H${L.W}V${WALL_H}H0Z ${wins.map((x) => `M${x} 8h30v26h-30Z`).join(' ')}`} fill="#cfc3b0" fillRule="evenodd" />
+      <g clipPath="url(#oRoomClip)">
+        {wins.map((x) => k.day > 0.3 && <polygon key={'s' + x} points={`${x},${WALL_H} ${x + 30},${WALL_H} ${x + 30 + shift},${WALL_H + 42} ${x + shift},${WALL_H + 42}`} fill="#fff1b8" opacity={0.42} />)}
+      </g>
       {wins.map((x) => <g key={x}>
         <rect x={x} y={8} width={30} height={26} fill="none" stroke="#f3eee4" strokeWidth={2} />
         {R(x + 14, 8, 2, 26, '#f3eee4')}{R(x - 2, 34, 34, 2, '#e6dfd1')}
-        {k.day > 0.3 && <polygon key={'s'+x} points={`${x},${WALL_H} ${x + 30},${WALL_H} ${x + 30 + shift},${WALL_H + 36} ${x + shift},${WALL_H + 36}`} fill="#fff1b8" opacity={0.5} />}
+        {R(x + 1, 9, 4, 24, '#c9b48f', { opacity: 0.7 })}{R(x + 25, 9, 4, 24, '#c9b48f', { opacity: 0.7 })}
+        {R(x + 5, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}{R(x + 24, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}
       </g>)}
       <Plaque key={logo} cx={plaqueCx} y={8} name={name} logo={logo} />
       <WallClock x={L.openRight - 20} y={20} c={c} />
@@ -342,35 +349,55 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       <text className="roomtag" x={L.openRight / 2} y={L.corridorY + 10} textAnchor="middle">CORRIDOR</text>
       <text className="roomtag" x={L.doorX} y={L.H - 10} textAnchor="middle">LOBBY</text>
 
-      {R(L.roomX + 6, L.pantryY + 8, 18, 24, '#5c6b78')}{R(L.roomX + 8, L.pantryY + 10, 14, 8, '#2e2e33')}
+      {R(L.roomX + 6, L.pantryY + 8, 18, 24, '#5c6b78')}{R(L.roomX + 7, L.pantryY + 9, 16, 9, '#6e7d8a')}
+      {R(L.roomX + 8, L.pantryY + 10, 14, 8, '#2e2e33')}{R(L.roomX + 10, L.pantryY + 19, 10, 1, '#b8c0c7')}
       {R(L.roomX + 10, L.pantryY + 18, 3, 3, '#d9483b')}{R(L.roomX + 16, L.pantryY + 18, 3, 3, '#4ade80')}
-      {R(L.roomX + 72, L.pantryY + 8, 22, 26, '#cdd3d9')}{R(L.roomX + 72, L.pantryY + 14, 22, 1, '#aab3bd')}
-      {R(L.roomX + 78, L.pantryY + 23, 10, 2, '#6b7280')}
+      {R(L.roomX + 19, L.pantryY + 24, 2, 4, '#d8dde2')}{R(L.roomX + 7, L.pantryY + 31, 16, 1, '#4a5560')}
+      {R(L.roomX + 72, L.pantryY + 8, 22, 26, '#cdd3d9')}{R(L.roomX + 73, L.pantryY + 9, 20, 24, '#dce1e5')}
+      {R(L.roomX + 72, L.pantryY + 14, 22, 1, '#aab3bd')}{R(L.roomX + 75, L.pantryY + 18, 16, 12, '#e8ecef')}
+      {R(L.roomX + 78, L.pantryY + 23, 10, 2, '#6b7280')}{R(L.roomX + 84, L.pantryY + 20, 4, 2, '#9aa3ad')}
       {R(L.roomX + 14, L.pantryY + 54, 58, 4, '#8b5a33')}{R(L.roomX + 14, L.pantryY + 58, 58, 2, '#a8794a')}
-      {R(L.roomX + 24, L.pantryY + 44, 8, 8, '#f4f1de')}{R(L.roomX + 56, L.pantryY + 44, 8, 8, '#e07a5f')}
-      {R(L.roomX + 80, L.pantryY + 62, 16, 5, '#4b8a3a')}
+      {R(L.roomX + 14, L.pantryY + 54, 58, 1, '#c4935e')}{R(L.roomX + 18, L.pantryY + 60, 2, 4, '#6b4526')}{R(L.roomX + 66, L.pantryY + 60, 2, 4, '#6b4526')}
+      {R(L.roomX + 30, L.pantryY + 58, 16, 4, '#6b5b45')}{R(L.roomX + 46, L.pantryY + 58, 16, 4, '#6b5b45')}
+      {R(L.roomX + 32, L.pantryY + 62, 2, 3, '#4a4f5c')}{R(L.roomX + 43, L.pantryY + 62, 2, 3, '#4a4f5c')}
+      {R(L.roomX + 48, L.pantryY + 62, 2, 3, '#4a4f5c')}{R(L.roomX + 59, L.pantryY + 62, 2, 3, '#4a4f5c')}
+      {R(L.roomX + 24, L.pantryY + 44, 8, 8, '#f4f1de')}{R(L.roomX + 25, L.pantryY + 45, 6, 2, '#d9cfae')}
+      {R(L.roomX + 56, L.pantryY + 44, 8, 8, '#e07a5f')}{R(L.roomX + 57, L.pantryY + 45, 6, 2, '#f4a58f')}
+      {R(L.roomX + 80, L.pantryY + 62, 16, 5, '#6b4a2b')}{R(L.roomX + 83, L.pantryY + 57, 9, 5, '#4b8a3a')}{R(L.roomX + 85, L.pantryY + 55, 5, 2, '#5fb352')}
 
-      {R(L.roomX + 6, L.loungeY + 16, 52, 8, '#3c6e8f')}{R(L.roomX + 6, L.loungeY + 24, 52, 14, '#4a85ab')}
+      {R(L.roomX + 6, L.loungeY + 16, 52, 8, '#356381')}{R(L.roomX + 6, L.loungeY + 24, 52, 14, '#4a85ab')}
+      {R(L.roomX + 9, L.loungeY + 24, 22, 12, '#5596bd')}{R(L.roomX + 33, L.loungeY + 24, 22, 12, '#457fa4')}
+      {R(L.roomX + 9, L.loungeY + 24, 22, 1, '#7db6d6')}{R(L.roomX + 33, L.loungeY + 24, 22, 1, '#6aa3c7')}
       {R(L.roomX + 4, L.loungeY + 18, 5, 22, '#356381')}{R(L.roomX + 58, L.loungeY + 18, 5, 22, '#356381')}
-      {R(L.roomX + 66, L.loungeY + 16, 30, 8, '#8a5c94')}{R(L.roomX + 66, L.loungeY + 24, 30, 14, '#7c4f86')}
+      {R(L.roomX + 6, L.loungeY + 38, 52, 2, '#2c5a78')}
+      {R(L.roomX + 66, L.loungeY + 16, 30, 8, '#6e4678')}{R(L.roomX + 66, L.loungeY + 24, 30, 14, '#7c4f86')}
+      {R(L.roomX + 69, L.loungeY + 24, 12, 12, '#8f62a0')}{R(L.roomX + 83, L.loungeY + 24, 10, 12, '#714b7d')}
       {R(L.roomX + 64, L.loungeY + 18, 4, 22, '#5d3a66')}{R(L.roomX + 94, L.loungeY + 18, 4, 22, '#5d3a66')}
       {R(L.roomX + 32, L.loungeY + 52, 32, 8, '#7a5432')}{R(L.roomX + 32, L.loungeY + 52, 32, 1, '#a8794a')}
-      {R(L.roomX + 74, L.loungeY + 36, 16, 18, '#6b4a2b')}
+      {R(L.roomX + 34, L.loungeY + 60, 2, 4, '#5e3f24')}{R(L.roomX + 60, L.loungeY + 60, 2, 4, '#5e3f24')}
+      {R(L.roomX + 38, L.loungeY + 54, 11, 2, '#e8e2d3')}{R(L.roomX + 51, L.loungeY + 54, 9, 2, '#d9c8a8')}
+      {R(L.roomX + 74, L.loungeY + 36, 16, 18, '#6b4a2b')}{R(L.roomX + 75, L.loungeY + 37, 14, 16, '#835b37')}
       {R(L.roomX + 76, L.loungeY + 38, 12, 3, '#e0b84f')}{R(L.roomX + 76, L.loungeY + 43, 12, 3, '#e07a5f')}
       {R(L.roomX + 94, L.loungeY + 14, 16, 22, '#3a3f4a')}{R(L.roomX + 96, L.loungeY + 18, 12, 16, '#2b2f38')}
-      {R(L.roomX + 94, L.loungeY + 38, 16, 2, '#f2c14e')}
+      {R(L.roomX + 97, L.loungeY + 19, 10, 14, '#1d3b5c')}{R(L.roomX + 94, L.loungeY + 38, 16, 2, '#f2c14e')}
 
-      {R(12, L.corridorY + 14, 24, 8, '#3c6e8f')}{R(12, L.corridorY + 22, 24, 14, '#4a85ab')}
-      {R(L.openRight - 40, L.corridorY + 14, 24, 8, '#8a5c94')}{R(L.openRight - 40, L.corridorY + 22, 24, 14, '#7c4f86')}
-      {R(54, L.corridorY + 48, 34, 5, '#7a5432')}{R(58, L.corridorY + 40, 6, 8, '#c9b48f')}
-      {R(L.openRight - 32, L.corridorY + 48, 28, 4, '#7a5432')}
+      {R(12, L.corridorY + 14, 24, 8, '#356381')}{R(12, L.corridorY + 22, 24, 14, '#4a85ab')}
+      {R(14, L.corridorY + 22, 20, 12, '#5596bd')}{R(14, L.corridorY + 22, 20, 1, '#7db6d6')}
+      {R(L.openRight - 40, L.corridorY + 14, 24, 8, '#6e4678')}{R(L.openRight - 40, L.corridorY + 22, 24, 14, '#7c4f86')}
+      {R(L.openRight - 38, L.corridorY + 22, 20, 12, '#8f62a0')}{R(L.openRight - 38, L.corridorY + 22, 20, 1, '#a982bb')}
+      {R(54, L.corridorY + 48, 34, 5, '#7a5432')}{R(54, L.corridorY + 48, 34, 1, '#a8794a')}
+      {R(58, L.corridorY + 40, 6, 8, '#c9b48f')}{R(68, L.corridorY + 41, 7, 2, '#e2e8f0')}
+      {R(L.openRight - 32, L.corridorY + 48, 28, 4, '#7a5432')}{R(L.openRight - 31, L.corridorY + 42, 6, 6, '#4b8a3a')}
+      {R(L.openRight - 30, L.corridorY + 40, 4, 3, '#5fb352')}
       {R(L.openRight - 18, WALL_H + 14, 4, 6, '#8f4a2c')}{R(L.openRight - 17, WALL_H + 16, 2, 3, '#d17a49')}
       {R(L.openRight - 20, L.corridorY - 24, 4, 6, '#4b8a3a')}{R(L.openRight - 21, L.corridorY - 28, 6, 4, '#5fb352')}
       {R(16, WALL_H + 10, 22, 12, '#f1f1f1')}{R(18, WALL_H + 12, 18, 2, '#8ab4f8')}{R(18, WALL_H + 16, 12, 2, '#cbd5e1')}
-      {R(L.openRight - 34, L.corridorY - 28, 22, 14, '#2f3f4f')}
+      {R(L.openRight - 34, L.corridorY - 28, 22, 14, '#2f3f4f')}{R(L.openRight - 33, L.corridorY - 27, 20, 12, '#dbe3ec')}
       {R(L.openRight - 32, L.corridorY - 26, 18, 2, '#e2e8f0')}{R(L.openRight - 32, L.corridorY - 22, 14, 2, '#94a3b8')}
       {R(L.openRight - 22, WALL_H + 10, 12, 10, '#ffd98a', { opacity: 0.85 })}
       {R(L.openRight - 24, WALL_H + 12, 8, 2, '#d97706')}
+      {R(L.openRight - 14, 8, 16, 20, '#8b5a33')}{R(L.openRight - 12, 10, 12, 16, '#c9b48f')}
+      {R(L.openRight - 10, 12, 8, 12, '#6b4a2b')}{R(L.openRight - 9, 13, 6, 4, '#e0b84f')}
       {R(L.doorX - 16, L.H - 3, 32, 3, '#c9a227')}
       <RoomDoor x={L.doorX} y={L.H - 2} label="EXIT" />
       {orn}
@@ -403,9 +430,14 @@ export default function Office({ snap, now, onAgent, tz }) {
   const [view, setView] = useState({ k: 1, tx: 0, ty: 0 });
   const [fitted, setFitted] = useState(false);
   const [stageSz, setStageSz] = useState(null);
+  const [full, setFull] = useState(false);
   const drag = useRef(null);
   const moved = useRef(false);
   const cx = L.VW / 2, cy = L.VH / 2;
+  const panLimit = (v) => ({
+    x: Math.max(120, L.VW * (v.k - 1) / 2 + 120),
+    y: Math.max(120, L.VH * (v.k - 1) / 2 + 120),
+  });
 
   useEffect(() => {
     const el = stageRef.current;
@@ -413,6 +445,12 @@ export default function Office({ snap, now, onAgent, tz }) {
     const ro = new ResizeObserver(([e]) => setStageSz({ w: e.contentRect.width, h: e.contentRect.height }));
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const on = () => setFull(document.fullscreenElement === stageRef.current);
+    document.addEventListener('fullscreenchange', on);
+    return () => document.removeEventListener('fullscreenchange', on);
   }, []);
 
   useEffect(() => {
@@ -426,7 +464,10 @@ export default function Office({ snap, now, onAgent, tz }) {
   const zoomAt = (factor, p) => setView((v) => {
     const nk = clamp(v.k * factor, MIN_K, MAX_K);
     const q = p || { x: cx, y: cy };
-    return { k: nk, tx: v.tx + (v.k - nk) * (q.x - cx), ty: v.ty + (v.k - nk) * (q.y - cy) };
+    const lim = panLimit(v);
+    return { k: nk,
+      tx: clamp(v.tx + (v.k - nk) * (q.x - cx), -lim.x, lim.x),
+      ty: clamp(v.ty + (v.k - nk) * (q.y - cy), -lim.y, lim.y) };
   });
   const svgPoint = (e) => {
     const svg = svgRef.current;
@@ -443,12 +484,22 @@ export default function Office({ snap, now, onAgent, tz }) {
     moved.current = false;
   };
   const onMove = (e) => {
-    if (!drag.current) return;
-    const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (Math.hypot(dx, dy) > 4) moved.current = true;
-    setView((v) => ({ ...v, tx: drag.current.tx + dx / drag.current.s, ty: drag.current.ty + dy / drag.current.s }));
+    setView((v) => {
+      const lim = panLimit(v);
+      return { ...v, tx: clamp(d.tx + dx / d.s, -lim.x, lim.x), ty: clamp(d.ty + dy / d.s, -lim.y, lim.y) };
+    });
   };
   const onUp = () => { drag.current = null; };
+  const toggleFull = () => {
+    const el = stageRef.current;
+    if (document.fullscreenElement === el) document.exitFullscreen?.();
+    else el?.requestFullscreen?.();
+    setFitted(false);
+  };
   const order = [...agents].sort((p, q) => (beh[p.agent_id]?.spot.y || 0) - (beh[q.agent_id]?.spot.y || 0));
   const scene = `translate(${cx - view.k * cx + view.tx} ${cy - view.k * cy + view.ty}) scale(${view.k})`;
 
@@ -460,7 +511,7 @@ export default function Office({ snap, now, onAgent, tz }) {
           {String(c.h).padStart(2, '0')}:{String(c.m).padStart(2, '0')}:{String(c.s).padStart(2, '0')} {c.zone} · {c.date}</span>
       </h2>
       <div className="ostage" ref={stageRef}>
-        <svg ref={svgRef} viewBox={`0 0 ${L.VW} ${L.VH}`} shapeRendering="crispEdges" role="group"
+        <svg ref={svgRef} viewBox={`0 0 ${L.VW} ${L.VH}`} role="group"
           aria-label={`2D office of ${name}: ${agents.length} desks`}
           onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
           onClickCapture={(e) => { if (moved.current) { e.stopPropagation(); e.preventDefault(); moved.current = false; } }}>
@@ -468,18 +519,19 @@ export default function Office({ snap, now, onAgent, tz }) {
             <linearGradient id="oSky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor={k.top} /><stop offset="1" stopColor={k.bottom} />
             </linearGradient>
-            <pattern id="oGrass" width="12" height="12" patternUnits="userSpaceOnUse">
-              {R(0, 0, 12, 12, '#616e5c')}{R(2, 3, 1, 2, '#6d7b66')}{R(7, 7, 1, 2, '#56634f')}{R(5, 1, 1, 1, '#77836d')}
+            <pattern id="oGround" width="16" height="16" patternUnits="userSpaceOnUse">
+              {R(0, 0, 16, 16, '#171c24')}{R(2, 4, 1, 1, '#1f2631')}{R(9, 2, 1, 1, '#202732')}{R(13, 10, 1, 1, '#1b222c')}{R(5, 13, 2, 1, '#1c232d')}
             </pattern>
             <pattern id="oOpen" width="16" height="16" patternUnits="userSpaceOnUse">
-              {R(0, 0, 16, 16, '#5d7280')}{R(0, 0, 16, 1, '#536976')}{R(0, 8, 16, 1, '#536976')}{R(8, 0, 1, 16, '#668091')}
+              {R(0, 0, 16, 16, '#5d7280')}{R(1, 1, 1, 1, '#657c8a')}{R(9, 1, 1, 1, '#657c8a')}{R(5, 9, 1, 1, '#536976')}{R(13, 9, 1, 1, '#536976')}
             </pattern>
-            <pattern id="oCorridor" width="12" height="12" patternUnits="userSpaceOnUse">
-              {R(0, 0, 12, 12, '#c9c6bd')}{R(0, 0, 6, 6, '#bdb9af')}{R(6, 6, 6, 6, '#bdb9af')}
+            <pattern id="oCorridor" width="24" height="8" patternUnits="userSpaceOnUse">
+              {R(0, 0, 24, 8, '#c9c6bd')}{R(0, 7, 24, 1, '#b6b2a8')}{R(0, 0, 1, 8, '#b6b2a8')}{R(12, 1, 1, 6, '#c1bdb3')}
             </pattern>
-            <pattern id="oLobby" width="14" height="14" patternUnits="userSpaceOnUse">
-              {R(0, 0, 14, 14, '#d8c8a8')}{R(0, 0, 7, 7, '#cbb995')}{R(7, 7, 7, 7, '#cbb995')}
+            <pattern id="oLobby" width="20" height="10" patternUnits="userSpaceOnUse">
+              {R(0, 0, 20, 10, '#d8c8a8')}{R(0, 9, 20, 1, '#bdae8c')}{R(10, 0, 1, 10, '#cfbe9c')}{R(1, 2, 8, 1, '#e0d2b5')}
             </pattern>
+            <clipPath id="oRoomClip"><rect x={0} y={WALL_H} width={L.W} height={L.H - WALL_H} /></clipPath>
             <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.55} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
             <pattern id="oTileP" width="12" height="12" patternUnits="userSpaceOnUse">
               {R(0, 0, 12, 12, '#e9dcb8')}{R(0, 0, 6, 6, '#dccb9c')}{R(6, 6, 6, 6, '#dccb9c')}
@@ -507,6 +559,8 @@ export default function Office({ snap, now, onAgent, tz }) {
           <button title="Zoom out" aria-label="Zoom out" onClick={() => zoomAt(1 / 1.25)}><i className="ph ph-minus"></i></button>
           <button title="Fit office" aria-label="Fit office" onClick={() => { setFitted(false); setView({ k: 1, tx: 0, ty: 0 }); }}>
             <i className="ph ph-corners-out"></i></button>
+          <button title={full ? 'Exit fullscreen' : 'Fullscreen'} aria-label={full ? 'Exit fullscreen' : 'Fullscreen'}
+            onClick={toggleFull}><i className={full ? 'ph ph-fullscreen-exit' : 'ph ph-fullscreen'}></i></button>
           <span className="oz" title="Zoom level">{Math.round(view.k * 100)}%</span>
         </div>
       </div>
