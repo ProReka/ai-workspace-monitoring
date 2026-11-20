@@ -96,7 +96,8 @@ body.hideL .col.side.left, body.hideR .col.side.right { display: none; }
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
     grid-template-areas: "center" "dock" "left" "right"; overflow: visible; }
-  .col.center { overflow: visible; }
+  .col.center { overflow: visible; min-height: 460px; }
+  .floor.office-floor { min-height: 440px; }
   .col.side.left, .col.side.right { border: none; border-bottom: 1px solid var(--border); overflow: visible; }
   body.hideL .col.side.left, body.hideR .col.side.right { display: none; }
   .dock { height: auto; max-height: none; }
@@ -376,43 +377,60 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .vmode button { background: var(--panel); color: var(--muted); border: none; cursor: pointer;
   font: inherit; font-size: 12px; padding: 2px 8px; display: inline-flex; gap: 4px; align-items: center; }
 .vmode button.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
-.floor.office-floor { background: var(--ground); display: flex; flex-direction: column; }
+.floor.office-floor { background: #4b8a3a; display: flex; flex-direction: column; overflow: hidden; }
 .office { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .office > h2 { padding: 2px 4px; margin: 0 0 4px; }
 .office .oclock { margin-left: auto; color: var(--text); font-size: 12px; }
-.office .ostage { flex: 1; min-height: 0; position: relative; }
+.office .ostage { flex: 1; min-height: 0; position: relative; overflow: hidden;
+  background-color: #5a9c45;
+  background-image: repeating-linear-gradient(0deg, transparent 0 7px, rgba(30,80,30,.16) 7px 9px),
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(30,80,30,.12) 11px 13px); }
 .office svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;
-  font-family: "Press Start 2P", ui-monospace, monospace; }
-.office .wsname { font-family: "Pixelify Sans", "Press Start 2P", ui-monospace, monospace; font-size: 17px; font-weight: 700;
-  fill: #f6d27a; paint-order: stroke; stroke: #5a3a12; stroke-width: 1.5px; letter-spacing: .04em; }
-.office .plate { font-family: "Pixelify Sans", ui-monospace, monospace; font-size: 3.8px; font-weight: 500; fill: #fff;
-  paint-order: stroke; stroke: rgba(40,25,10,.75); stroke-width: 1px; }
-.office .olabel { font-family: "Pixelify Sans", ui-monospace, monospace; font-size: 3.8px; fill: #fff; paint-order: stroke;
-  stroke: rgba(0,0,0,.75); stroke-width: 1.2px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+  font-family: "Pixelify Sans", ui-monospace, monospace; cursor: grab; touch-action: none; }
+.office svg:active { cursor: grabbing; }
+.office .wsname { font-size: 15px; font-weight: 700; fill: #f6d27a; paint-order: stroke;
+  stroke: #5a3a12; stroke-width: 1.5px; letter-spacing: .04em; }
+ .office .plate { font-size: 5.2px; font-weight: 700; fill: #fff; paint-order: stroke;
+  stroke: rgba(40,25,10,.85); stroke-width: 1.6px; }
+.office .olabel { font-size: 5.6px; font-weight: 700; fill: #fff; paint-order: stroke;
+  stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 0; transition: opacity .15s; pointer-events: none; }
 .office .actor:hover .olabel { opacity: 1; }
-.office .zone { font-size: 4px; fill: rgba(40,30,20,.45); letter-spacing: .1em; }
+.office .roomtag { font-size: 5px; font-weight: 700; fill: rgba(50,40,30,.65); letter-spacing: .12em; }
+.office .doortag { font-size: 4.6px; font-weight: 700; fill: #c9a227; paint-order: stroke; stroke: rgba(40,30,20,.7); stroke-width: 1px; }
+.office .zone { font-size: 5px; fill: rgba(40,30,20,.5); letter-spacing: .1em; }
 .office .desk { cursor: pointer; outline: none; }
 .office .desk .hit { stroke: transparent; stroke-width: 1; }
-.office .desk:hover .hit, .office .desk:focus-visible .hit { stroke: var(--accent); stroke-dasharray: 2 2; }
+.office .desk:hover .hit, .office .desk:focus-visible .hit { stroke: var(--accent); stroke-dasharray: 3 3; }
 .office .actor { cursor: pointer; transition-property: transform; transition-timing-function: linear; }
-.office .actor.walking .l1 { animation: ostep .36s steps(1) infinite; }
-.office .actor.walking .l2 { animation: ostep .36s steps(1) infinite reverse; }
-.office .actor.walking .torso { animation: obob .36s steps(1) infinite; }
-.office .actor.typing .a1 { animation: otype .22s steps(1) infinite; }
-.office .actor.typing .a2 { animation: otype .22s steps(1) infinite .11s; }
-.office .scr.s-work .code { animation: oscroll .7s steps(1) infinite; }
-.office .blink { animation: pulse 1.2s steps(2) infinite; }
-.office .saver { animation: osaver 6s steps(6) infinite; }
+.office .actor.walking .l1 { animation: ostep .34s steps(1) infinite; }
+.office .actor.walking .l2 { animation: ostep .34s steps(1) infinite reverse; }
+.office .actor.walking .torso { animation: obob .34s steps(1) infinite; }
+.office .actor.typing .a1 { animation: otype .18s steps(1) infinite; }
+.office .actor.typing .a2 { animation: otype .18s steps(1) infinite .09s; }
+.office .arm.rest { transform: rotate(-12deg); transform-origin: 5px 14px; }
+.office .arm.rest2 { transform: rotate(12deg) translateY(2px); transform-origin: -5px 14px; }
+.office .scr.s-work .code { animation: oscroll .55s steps(1) infinite; }
+.office .scr .fun { animation: ofun 1.4s steps(2) infinite; }
+.office .blink { animation: pulse 1.1s steps(2) infinite; }
+.office .saver { animation: osaver 5s steps(6) infinite; }
+.office .water rect { animation: owave 2.4s ease-in-out infinite alternate; }
+.office .taskwin { animation: otask .5s steps(2) infinite alternate; }
+.office .overload { animation: pulse .45s steps(2) infinite; }
+.office .otools { position: absolute; right: 9px; bottom: 9px; display: flex; gap: 2px; align-items: center;
+  background: rgba(16,20,26,.82); border: 1px solid var(--border); padding: 2px; }
+.office .otools button { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  cursor: pointer; width: 25px; height: 23px; padding: 0; font-size: 13px; }
+.office .otools button:hover { border-color: var(--accent); }
+.office .otools .oz { font: 11px ui-monospace, monospace; color: var(--muted); padding: 0 5px; min-width: 36px; text-align: center; }
 @keyframes ostep { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
 @keyframes obob { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-@keyframes otype { 0% { transform: translateY(0); } 50% { transform: translateY(1.5px); } }
-@keyframes oscroll { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-@keyframes osaver { 0% { transform: translate(0,0); } 33% { transform: translate(9px,2px); } 66% { transform: translate(4px,4px); } }
-@media (max-width: 700px) {
-  .office { overflow-x: auto; }
-  .office .ostage { flex: none; min-width: 640px; height: 62vh; }
-}
+@keyframes otype { 0% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+@keyframes oscroll { 0% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@keyframes osaver { 0% { transform: translate(0,0); } 33% { transform: translate(10px,2px); } 66% { transform: translate(5px,5px); } }
+@keyframes owave { to { transform: translateX(3px); opacity: .45; } }
+@keyframes ofun { 50% { opacity: .7; } }
+@keyframes otask { to { transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) {
   .office .actor { transition: none !important; }
-  .office .actor *, .office .scr * { animation: none !important; }
+  .office .actor *, .office .scr *, .office .water rect, .office .taskwin, .office .overload { animation: none !important; }
 }

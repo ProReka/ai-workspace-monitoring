@@ -1,12 +1,15 @@
-// Pure helpers for the 2D Office view (layout, schedule, daylight). No React here.
-
+// Pure helpers for the 2D Office view (layout, routing, schedule, daylight).
 export const TZ_DEFAULT = 'Asia/Jakarta';
-export const WALL_H = 46;
 export const CELL_W = 48;
-export const CELL_H = 60;
-export const LOUNGE_W = 128;
-const POD_GAP = 10;
-const SLOT_S = 75;
+export const CELL_H = 70;
+export const WALL_H = 42;
+export const ROOM_W = 126;
+const POD_GAP = 8;
+const OUT_X = 170;
+const OUT_Y = 48;
+const BUCKET_S = 120;
+const HOLD_S = 300;
+const AWAY_AFTER_S = 600;
 
 export function hash(s) {
   let h = 0x811c9dc5;
@@ -25,7 +28,6 @@ function mix(a, b, t) {
   return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
 }
 
-// Wall-clock parts in the office timezone; invalid tz falls back to Jakarta.
 export function tzClock(now, tz) {
   const fmt = (zone) => new Intl.DateTimeFormat('en-GB', {
     timeZone: zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
@@ -38,7 +40,6 @@ export function tzClock(now, tz) {
   return { h, m, s, hours: h + m / 60 + s / 3600, zone: p.timeZoneName, date: `${p.weekday} ${p.day} ${p.month}` };
 }
 
-// ponytail: fixed 06:00-18:00 sun arc (fits equatorial WIB); add a solar calc if offices move far from the equator.
 export function sky(hours) {
   const alt = Math.sin((Math.PI * (hours - 6)) / 12);
   const day = clamp((alt + 0.1) / 0.35, 0, 1);
@@ -49,59 +50,152 @@ export function sky(hours) {
     bottom: mix(mix('#1c2452', '#a8dbf6', day), '#ff9a5c', glow * 0.8),
     sunX: (hours - 6) / 12,
     moonX: (((hours + 12) % 24) - 6) / 12,
+    night: 1 - day,
   };
 }
 
 export function layout(n) {
-  const cols = clamp(Math.ceil(Math.sqrt(Math.max(1, n) * 1.6)), 2, 5);
-  const rows = Math.max(1, Math.ceil(n / cols));
+  const count = Math.max(1, n);
+  const cols = clamp(Math.ceil(Math.sqrt(count * 1.6)), 2, 5);
+  const rows = Math.max(1, Math.ceil(count / cols));
   const deskX = (c) => 10 + c * CELL_W + Math.floor(c / 2) * POD_GAP;
-  const top = WALL_H + 10;
-  const lx = deskX(cols - 1) + CELL_W + 16;
-  const W = lx + LOUNGE_W + 6;
-  const H = top + Math.max(rows * CELL_H + 14, 236);
-  const desks = Array.from({ length: n }, (_, i) => ({ x: deskX(i % cols), y: top + Math.floor(i / cols) * CELL_H }));
-  return { cols, rows, W, H, top, lx, desks };
+  const deskRight = deskX(cols - 1) + CELL_W;
+  const openRight = deskRight + 18;
+  const top = WALL_H + 12;
+  const openBottom = top + rows * CELL_H + 10;
+  const corridorY = openBottom + 22;
+  const W = openRight + ROOM_W + 10;
+  const H = corridorY + 64;
+  return {
+    cols, rows, W, H, top, openRight, deskRight,
+    VW: W + 2 * OUT_X, VH: H + 2 * OUT_Y,
+    BX: OUT_X, BY: OUT_Y,
+    aisleX: deskRight + 8,
+    openBottom, corridorY,
+    roomX: openRight + 8, roomRight: W - 8,
+    pantryY: top, pantryH: 88,
+    loungeY: top + 96,
+    doorX: Math.round(W / 2),
+    pantryDoorY: top + 42,
+    loungeDoorY: top + 132,
+    roomDoorX: openRight + 4,
+    desks: Array.from({ length: count }, (_, i) => ({ x: deskX(i % cols), y: top + Math.floor(i / cols) * CELL_H })),
+  };
 }
 
-// Feet positions in the lounge; must match the furniture drawn in Office.jsx.
-export function loungeSpots(lx, H) {
-  const t = WALL_H;
+export function deskSpot(a, i, L) {
+  const d = L.desks[i];
+  return { key: 'desk:' + a.agent_id, zone: 'desk', i, id: a.agent_id, pose: 'desk',
+    x: L.BX + d.x + 24, y: L.BY + d.y + 44 };
+}
+
+export function indoorSpots(L) {
+  const rx = L.BX + L.roomX;
   return [
-    { x: lx + 20, y: t + 40, pose: 'cup' }, { x: lx + 42, y: t + 42, pose: 'cup' }, { x: lx + 64, y: t + 40, pose: 'cup' },
-    { x: lx + 118, y: t + 58, pose: 'cup' },
-    { x: lx + 32, y: t + 104, pose: 'sit' }, { x: lx + 52, y: t + 104, pose: 'sit' }, { x: lx + 72, y: t + 104, pose: 'sit' },
-    { x: lx + 108, y: t + 124, pose: 'sit' },
-    { x: lx + 58, y: t + 172, pose: 'sit' }, { x: lx + 74, y: t + 172, pose: 'sit' },
-    { x: lx + 46, y: t + 200, pose: 'stand' }, { x: lx + 100, y: H - 26, pose: 'stand' }, { x: lx + 66, y: H - 14, pose: 'stand' },
+    { key: 'coffee', zone: 'pantry', pose: 'cup', x: rx + 28, y: L.BY + L.pantryY + 28, door: 'pantry' },
+    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 82, y: L.BY + L.pantryY + 28, door: 'pantry' },
+    { key: 'eat', zone: 'pantry', pose: 'sit', x: rx + 52, y: L.BY + L.pantryY + 68, door: 'pantry' },
+    { key: 'sofa1', zone: 'lounge', pose: 'sit', x: rx + 30, y: L.BY + L.loungeY + 28, door: 'lounge' },
+    { key: 'sofa2', zone: 'lounge', pose: 'sit', x: rx + 82, y: L.BY + L.loungeY + 28, door: 'lounge' },
+    { key: 'read', zone: 'lounge', pose: 'sit', x: rx + 56, y: L.BY + L.loungeY + 62, door: 'lounge' },
+    { key: 'corr1', zone: 'corridor', pose: 'sit', x: L.BX + 28, y: L.BY + L.corridorY + 36 },
+    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.openRight - 30, y: L.BY + L.corridorY + 36 },
   ];
 }
 
-export const atDesk = (a) => !!a.runtime_online && (a.running > 0 || (a.pending_total || 0) > 0);
+export function outdoorSpots(L) {
+  const y = L.BY + L.H + 54;
+  return [
+    { key: 'lawn1', zone: 'outside', pose: 'stand', x: L.BX - 84, y: y + 18 },
+    { key: 'lawn2', zone: 'outside', pose: 'sit', x: L.BX + 34, y },
+    { key: 'lawn3', zone: 'outside', pose: 'stand', x: L.BX + L.W / 2 - 46, y: y + 26 },
+    { key: 'lawn4', zone: 'outside', pose: 'stand', x: L.BX + L.W / 2 + 46, y: y + 26 },
+    { key: 'lawn5', zone: 'outside', pose: 'sit', x: L.BX + L.W - 34, y },
+    { key: 'lawn6', zone: 'outside', pose: 'stand', x: L.BX + L.W + 84, y: y + 18 },
+  ];
+}
 
-// Busy agents sit at their desk; the rest roam to a free lounge spot that changes every ~75s.
-export function plan(agents, desks, spots, nowS) {
-  const out = {};
-  const idle = [];
-  agents.forEach((a, i) => {
-    const d = desks[i];
-    if (atDesk(a)) out[a.agent_id] = { x: d.x + 24, y: d.y + 40, pose: 'desk' };
-    else idle.push([a, d]);
-  });
-  idle.sort((p, q) => String(p[0].agent_id).localeCompare(String(q[0].agent_id)));
-  const taken = new Set();
-  for (const [a, d] of idle) {
-    const id = String(a.agent_id);
-    const r = hash(id + ':' + Math.floor((nowS + (hash(id) % SLOT_S)) / SLOT_S));
-    let pick = -1;
-    for (let k = 0; r % 5 !== 0 && k < spots.length; k++) {
-      const j = (r + k) % spots.length;
-      if (!taken.has(j)) { pick = j; break; }
-    }
-    if (pick < 0) out[id] = { x: d.x + 42, y: d.y + 36, pose: 'stand' };
-    else { taken.add(pick); out[id] = { ...spots[pick] }; }
+const hub = (L) => ({ x: L.BX + L.aisleX, y: L.BY + L.corridorY });
+
+function insideLeg(p, L) {
+  if (p.zone === 'desk') {
+    const d = L.desks[p.i];
+    const rowY = L.BY + d.y + CELL_H - 8;
+    const seatX = L.BX + d.x + 24;
+    return [p, { x: seatX, y: rowY }, { x: L.BX + L.aisleX, y: rowY }, hub(L)];
   }
-  return out;
+  if (p.zone === 'corridor') {
+    return [p, { x: p.x, y: L.BY + L.corridorY }, hub(L)];
+  }
+  if (p.zone === 'pantry' || p.zone === 'lounge') {
+    const doorY = L.BY + (p.door === 'pantry' ? L.pantryDoorY : L.loungeDoorY);
+    const inX = L.BX + L.roomX + 4, outX = L.BX + L.roomDoorX - 8;
+    return [p, { x: inX, y: p.y }, { x: inX, y: doorY }, { x: outX, y: doorY },
+      { x: outX, y: L.BY + L.corridorY }, hub(L)];
+  }
+  const doorOutX = L.BX + L.doorX, doorOutY = L.BY + L.H + 12;
+  return [p, { x: p.x, y: doorOutY }, { x: doorOutX, y: doorOutY }];
+}
+
+function mainDoorLeg(L) {
+  const x = L.BX + L.doorX;
+  return [{ x: L.BX + L.aisleX, y: L.BY + L.corridorY },
+    { x, y: L.BY + L.corridorY }, { x, y: L.BY + L.H }, { x, y: L.BY + L.H + 12 }];
+}
+
+export function routeFor(from, to, L) {
+  if (!from || !to) return [];
+  const a = insideLeg(from, L);
+  const b = insideLeg(to, L);
+  if ((from.zone === 'outside') !== (to.zone === 'outside')) {
+    a.push(...mainDoorLeg(L).slice(1));
+    b.push(...mainDoorLeg(L).slice(1));
+  }
+  return a.concat(b.reverse().slice(1));
+}
+
+export function chooseAway(id, prev, L, nowS) {
+  const bucket = Math.floor(nowS / BUCKET_S);
+  if (prev && prev.zone !== 'desk' && bucket === prev.bucket) return prev;
+  const pool = [...indoorSpots(L), ...outdoorSpots(L)];
+  return { ...pool[hash(id + ':' + bucket) % pool.length], bucket };
+}
+
+export function plan(agents, L, prevBeh, nowS) {
+  const next = {};
+  agents.forEach((a, i) => {
+    const id = a.agent_id;
+    const desk = deskSpot(a, i, L);
+    const old = prevBeh && prevBeh[id];
+    const work = a.running > 0;
+    const pending = (a.pending_total || 0) > 0;
+    let spot = desk, activity = 'idle';
+    let idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
+    let holdUntil = old ? old.holdUntil || 0 : 0;
+    if (work) idleSince = nowS;
+    if (old && old.activity === 'work' && !work) holdUntil = nowS + HOLD_S;
+    if (!a.runtime_online) {
+      activity = 'offline'; holdUntil = 0; idleSince = nowS;
+    } else if (work) {
+      activity = 'work'; holdUntil = 0;
+    } else if (nowS < holdUntil) {
+      activity = 'relax';
+    } else if (pending) {
+      activity = hash(id + ':q') % 100 < 45 ? 'leisure' : 'queue';
+    } else {
+      const bucket = Math.floor(nowS / BUCKET_S);
+      const roll = hash(id + ':stay:' + bucket) % 100;
+      const mayLeave = nowS - idleSince >= AWAY_AFTER_S;
+      if (roll < (mayLeave ? 30 : 50)) activity = 'leisure';
+      else if (!mayLeave || roll < 55) activity = 'idle';
+      else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
+    }
+    const leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l') % 3] : '';
+    const overload = work && pending;
+    const route = routeFor(old && old.spot ? old.spot : desk, spot, L);
+    next[id] = { spot, activity, leisure, overload, holdUntil, idleSince, route };
+  });
+  return next;
 }
 
 const SKIN = ['#f3d0b0', '#e5b48a', '#c98d60', '#9a6440', '#6e4529'];
@@ -116,8 +210,7 @@ export function look(id) {
   };
 }
 
-// Word-wrap a name into at most `lines` lines of `max` chars; trailing separators dropped, overflow ellipsized.
-export function wrapName(name, max = 18, lines = 2) {
+export function wrapName(name, max = 12, lines = 2) {
   const out = [];
   let cur = '';
   for (const w of String(name || '').trim().split(/\s+/)) {

@@ -1,6 +1,6 @@
 // Self-check for 2D Office helpers: `node src/office.check.mjs`
 import assert from 'node:assert/strict';
-import { layout, loungeSpots, plan, sky, tzClock, wrapName } from './office.js';
+import { CELL_H, CELL_W, deskSpot, indoorSpots, layout, outdoorSpots, plan, routeFor, sky, tzClock, wrapName } from './office.js';
 
 const t = Date.UTC(2026, 10, 18, 5, 0, 0);
 assert.equal(tzClock(t, 'Asia/Jakarta').h, 12);
@@ -8,25 +8,100 @@ assert.equal(tzClock(t, 'Not/AZone').h, 12);
 assert.equal(sky(12).day, 1);
 assert.equal(sky(0).day, 0);
 
-const agents = Array.from({ length: 10 }, (_, i) => ({
-  agent_id: 'a' + i, runtime_online: i < 6, running: i < 2 ? 1 : 0, pending_total: i === 2 ? 1 : 0,
+const L = layout(8);
+assert.equal(L.desks.length, 8);
+assert.ok(L.VW > L.W + 200 && L.VH > L.H, 'croppable grass around a centered building');
+const agents = Array.from({ length: 8 }, (_, i) => ({
+  agent_id: 'a' + i, runtime_online: true, running: i < 2 ? 1 : 0, pending_total: i === 2 ? 3 : 0,
 }));
-const L = layout(agents.length);
-assert.equal(L.desks.length, 10);
-const spots = loungeSpots(L.lx, L.H);
-for (const now of [0, 75, 1e6]) {
-  const p = plan(agents, L.desks, spots, now);
-  for (const i of [0, 1, 2]) assert.equal(p['a' + i].pose, 'desk');
-  for (const i of [3, 6, 9]) assert.notEqual(p['a' + i].pose, 'desk');
-  const lounge = Object.values(p).filter((x) => x.pose !== 'desk' && x.x >= L.lx);
-  assert.equal(new Set(lounge.map((x) => x.x + ',' + x.y)).size, lounge.length);
-  assert.deepEqual(plan(agents, L.desks, spots, now), p);
+const indoors = indoorSpots(L), outdoors = outdoorSpots(L);
+assert.equal(new Set([...indoors, ...outdoors].map((s) => s.key)).size, indoors.length + outdoors.length);
+const seats = agents.map((a, i) => deskSpot(a, i, L));
+const starts = [...seats, ...indoors, ...outdoors];
+const cross = (r, x, y) => r.some((p, i) => {
+  if (!i) return false;
+  const a = r[i - 1], b = p;
+  const horiz = Math.abs(a.y - y) < 0.1 && Math.abs(b.y - y) < 0.1
+    && Math.min(a.x, b.x) - 1 <= x && Math.max(a.x, b.x) + 1 >= x;
+  const vert = Math.abs(a.x - x) < 0.1 && Math.abs(b.x - x) < 0.1
+    && Math.min(a.y, b.y) - 1 <= y && Math.max(a.y, b.y) + 1 >= y;
+  return horiz || vert;
+});
+for (const from of starts) {
+  for (const to of starts) {
+    if (from === to) continue;
+    const r = routeFor(from, to, L);
+    assert.ok(r.length >= 2, `${from.key} -> ${to.key}`);
+    assert.deepEqual([r[0].x, r[0].y], [from.x, from.y]);
+    assert.deepEqual([r[r.length - 1].x, r[r.length - 1].y], [to.x, to.y]);
+    if ((from.zone === 'outside') !== (to.zone === 'outside')) {
+      assert.ok(cross(r, L.BX + L.doorX, L.BY + L.H), `main door missing: ${from.key} -> ${to.key}`);
+    }
+    for (const zone of ['pantry', 'lounge']) {
+      if (from.zone === zone || to.zone === zone) {
+        const other = from.zone === zone ? to : from;
+        if (other.zone !== zone) {
+          const y = L.BY + (zone === 'pantry' ? L.pantryDoorY : L.loungeDoorY);
+          assert.ok(cross(r, L.BX + L.roomDoorX, y), `${zone} door missing: ${from.key} -> ${to.key}`);
+        }
+      }
+    }
+    for (let i = 1; i < r.length; i++) {
+      const a = r[i - 1], b = r[i];
+      if (a.y !== b.y) continue;
+      const y = a.y, x1 = Math.min(a.x, b.x), x2 = Math.max(a.x, b.x);
+      const rows = L.desks.filter((d) => {
+        const y0 = L.BY + d.y;
+        return y > y0 + 4 && y < y0 + 57;
+      });
+      for (const d of rows) {
+        const x0 = L.BX + d.x + 2, x1d = L.BX + d.x + CELL_W;
+        const own = from.zone === 'desk' && from.i === L.desks.indexOf(d);
+        assert.ok(own || x2 <= x0 || x1 >= x1d, `route crossed a desk: ${from.key} -> ${to.key}`);
+      }
+    }
+  }
 }
-assert.deepEqual(wrapName('Technical Lead - Tanto'), ['Technical Lead', 'Tanto']);
+
+let b = plan(agents, L, null, 1000);
+assert.equal(b.a0.activity, 'work');
+assert.equal(b.a2.activity, 'queue');
+const stopped = agents.map((a, i) => (i === 0 ? { ...a, running: 0 } : a));
+b = plan(stopped, L, b, 1005);
+assert.equal(b.a0.activity, 'relax');
+assert.ok(b.a0.holdUntil > 1005);
+assert.ok(b.a0.holdUntil - 1005 >= 300, 'long post-work hold');
+for (let t = 1010; t < 1005 + 300; t += 10) {
+  b = plan(stopped, L, b, t);
+  assert.equal(b.a0.spot.zone, 'desk', 'stays at desk during hold');
+}
+b = plan(stopped, L, b, 1400);
+assert.notEqual(b.a0.activity, 'relax');
+assert.equal(b.a0.spot.zone, 'desk', 'still no leaving soon after hold');
+let left = false;
+for (let t = 1400; t < 1400 + 3600 && !left; t += 120) {
+  b = plan(stopped, L, b, t);
+  if (b.a0.spot.zone !== 'desk') left = true;
+}
+assert.ok(left, 'idle agent leaves eventually');
+const offline = agents.map((a, i) => (i === 3 ? { ...a, runtime_online: false } : a));
+for (const seed of [null, b]) {
+  const o = plan(offline, L, seed, 2000);
+  assert.equal(o.a3.activity, 'offline');
+  assert.equal(o.a3.spot.zone, 'desk', 'offline runtime stays at desk');
+}
+b = plan(offline, L, null, 2000);
+b = plan(agents, L, b, 2010);
+assert.notEqual(b.a3.activity, 'offline', 'back on when runtime returns');
+const busy = plan(agents, L, null, 3000);
+assert.equal(busy.a0.overload, false);
+const ov = agents.map((a, i) => (i === 0 ? { ...a, pending_total: 2 } : a));
+assert.equal(plan(ov, L, null, 3000).a0.overload, true, 'pending while working = overload');
+
+assert.deepEqual(wrapName('Technical Lead - Tanto'), ['Technical', 'Lead - Tanto']);
 assert.deepEqual(wrapName('Nova'), ['Nova']);
-assert.deepEqual(wrapName('Supercalifragilisticexpialidocious'), ['Supercalifragilis…']);
 for (const n of ['Backend Developer Senior Lead - Andromeda', 'A B C D E F G H I J K L M N O P']) {
   const w = wrapName(n);
-  assert.ok(w.length <= 2 && w.every((l) => l.length <= 18), n);
+  assert.ok(w.length <= 2 && w.every((l) => l.length <= 12), n);
 }
 console.log('office.check ok');
