@@ -377,15 +377,13 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .vmode button { background: var(--panel); color: var(--muted); border: none; cursor: pointer;
   font: inherit; font-size: 12px; padding: 2px 8px; display: inline-flex; gap: 4px; align-items: center; }
 .vmode button.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
-.floor.office-floor { background: #4b8a3a; display: flex; flex-direction: column; overflow: hidden; }
+.floor.office-floor { background: #171c24; display: flex; flex-direction: column; overflow: hidden; }
 .office { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .office > h2 { padding: 2px 4px; margin: 0 0 4px; }
 .office .oclock { margin-left: auto; color: var(--text); font-size: 12px; }
-.office .ostage { flex: 1; min-height: 0; position: relative; overflow: hidden;
-  background-color: #5a9c45;
-  background-image: repeating-linear-gradient(0deg, transparent 0 7px, rgba(30,80,30,.16) 7px 9px),
-    repeating-linear-gradient(90deg, transparent 0 11px, rgba(30,80,30,.12) 11px 13px); }
-.office svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;
+.office .ostage { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #171c24; }
+.office .ostage:fullscreen { width: 100vw; height: 100vh; background: #171c24; }
+.office svg { position: absolute; inset: 0; width: 100%; height: 100%;
   font-family: "Pixelify Sans", ui-monospace, monospace; cursor: grab; touch-action: none; }
 .office svg:active { cursor: grabbing; }
 .office .wsname { font-size: 15px; font-weight: 700; fill: #f6d27a; paint-order: stroke;
@@ -407,8 +405,6 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .office .actor.walking .torso { animation: obob .34s steps(1) infinite; }
 .office .actor.typing .a1 { animation: otype .18s steps(1) infinite; }
 .office .actor.typing .a2 { animation: otype .18s steps(1) infinite .09s; }
-.office .arm.rest { transform: rotate(-12deg); transform-origin: 5px 14px; }
-.office .arm.rest2 { transform: rotate(12deg) translateY(2px); transform-origin: -5px 14px; }
 .office .scr.s-work .code { animation: oscroll .55s steps(1) infinite; }
 .office .scr .fun { animation: ofun 1.4s steps(2) infinite; }
 .office .blink { animation: pulse 1.1s steps(2) infinite; }
