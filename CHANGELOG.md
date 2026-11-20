@@ -16,6 +16,16 @@ All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 - Croppable yard around the building: grass and varied-size trees only, no pool and no outer border
 - More office details: corridor chairs and sofas, whiteboard, printer, coffee machine, stove, bookshelf and plants
 
+## [1.1.3](https://github.com/ProReka/ai-workspace-monitoring/compare/v1.1.2...v1.1.3) (2026-11-20)
+
+
+### Bug Fixes
+
+* **web:** clarify seated agents and attach resting hands ([8f03235](https://github.com/ProReka/ai-workspace-monitoring/commit/8f0323589b16e16f0799e9692ee164d49e507014))
+* **web:** face desk agents toward laptop and use office chairs ([92f5e4a](https://github.com/ProReka/ai-workspace-monitoring/commit/92f5e4a0236eedd8ace6b3471a73be7c109a9f80))
+* **web:** polish office visuals and harden canvas controls ([0596d9d](https://github.com/ProReka/ai-workspace-monitoring/commit/0596d9df599e63abe2d1d47a016e22ce11c4b842))
+* **web:** polish office visuals and harden canvas controls ([b977dcb](https://github.com/ProReka/ai-workspace-monitoring/commit/b977dcb036ce7d77ac7b0645d26bd266cea189f7))
+
 ## [1.1.2](https://github.com/ProReka/ai-workspace-monitoring/compare/v1.1.1...v1.1.2) (2026-11-20)
 
 
