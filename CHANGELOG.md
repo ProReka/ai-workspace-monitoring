@@ -16,6 +16,21 @@ All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 - Croppable yard around the building: grass and varied-size trees only, no pool and no outer border
 - More office details: corridor chairs and sofas, whiteboard, printer, coffee machine, stove, bookshelf and plants
 
+## [1.1.0](https://github.com/ProReka/ai-workspace-monitoring/compare/v1.0.7...v1.1.0) (2026-11-20)
+
+
+### Features
+
+* **web:** make 2D Office zoomable and route agents through door ([b831597](https://github.com/ProReka/ai-workspace-monitoring/commit/b83159713d9d34e2a46abf4a15b01ee5550d0977))
+* **web:** make 2D Office zoomable and route agents through door ([1b41c8a](https://github.com/ProReka/ai-workspace-monitoring/commit/1b41c8a4e0e73c981090d9c6040490c8f121a98c))
+* **web:** rebuild office rooms and outdoor yard ([6da5bb4](https://github.com/ProReka/ai-workspace-monitoring/commit/6da5bb4a533a4de84451f99fd658d08bdf036f88))
+
+
+### Bug Fixes
+
+* **web:** keep offline agents at desk, longer hold, edge-fit zoom and indoor lamps ([bf1010e](https://github.com/ProReka/ai-workspace-monitoring/commit/bf1010e14f2e2f478f25ec4af6257ba87ec13b3d))
+* **web:** refine office zoom, rooms, walls and lighting ([90a3a71](https://github.com/ProReka/ai-workspace-monitoring/commit/90a3a71f31745eefb4a5b21fca04a520b3236407))
+
 ## v0.1.7 — 2026-11-18
 
 - View Mode toggle: `Standard` / `2D Office` (pixel-art top-down office, persisted)
