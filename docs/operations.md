@@ -15,7 +15,8 @@ Or `docker compose up --build` (needs `.env`; Multica adapter needs CLI — mock
 
 ## Dokploy (+ Traefik)
 
-Image: `ghcr.io/proreka/ai-workspace-monitoring:0.1.7`, container port `8080`.
+Image: `ghcr.io/proreka/ai-workspace-monitoring:latest` (or pin a released tag,
+e.g. `:1.0.7`), container port `8080`.
 Traefik Host-rule + https redirect, as usual — nothing special required.
 
 Env (Dokploy → Environment, values are literal — **no quotes**):
@@ -44,6 +45,20 @@ NINEROUTER_KEY, NINEROUTER_PASSWORD[, NINEROUTER_COOKIE], AWS_REGION, ECS_CLUSTE
 
 Tanpa token/CLI, tiap adapter mode mock (UI tetap tampil untuk demo/screenshot):
 `env -i PATH="$PATH" PORT=8081 HOME="$HOME" DATA_DIR=/tmp/ov-mock ./.venv/bin/python -m collector.main`
+
+## Release automation
+
+- `.github/workflows/release-please.yml` runs on every push to `main` and opens/updates a
+  Release PR using `release-please-config.json` + `.release-please-manifest.json`.
+- Conventional commits decide the bump: `feat` → minor, `fix` → patch, `BREAKING CHANGE` → major.
+- Humans review and merge the Release PR. Only then does release-please create the GitHub
+  Release plus a `vX.Y.Z` tag; there is no manual tagging step.
+- The existing `.github/workflows/release.yml` listens on `v*` tags and pushes the multi-arch
+  GHCR image with `:X.Y.Z`, `:X.Y` and `:latest` tags. It is unchanged by this automation.
+- `v0.1.7` and `v1.0.7` are duplicate tags on commit `43e179f`; the manifest pins `1.0.7` as
+  the authoritative last release so release-please does not replay old commits or re-release.
+- Rollback: revert the automation PR. No tag, release, image or deployment is created until a
+  Release PR is merged by a human.
 
 ## Notes
 
