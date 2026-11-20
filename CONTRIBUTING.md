@@ -40,8 +40,11 @@ no fabricated URLs), and gotchas.
 SemVer, automated by release-please (`.github/workflows/release-please.yml`).
 Every push to `main` opens or updates a Release PR. A maintainer reviews and merges
 that PR; release-please then creates the GitHub Release and the `vX.Y.Z` tag.
-The existing `.github/workflows/release.yml` builds and pushes
-`ghcr.io/proreka/ai-workspace-monitoring:X.Y.Z` + `:latest` on that tag.
+The `image` job in that workflow calls `.github/workflows/release.yml` with the new
+tag and pushes `ghcr.io/proreka/ai-workspace-monitoring:X.Y.Z`, `:X.Y` and `:latest`.
+The call is needed because tags created with `GITHUB_TOKEN` do not emit a `push`
+event that could trigger `release.yml` on its own. Human-created `v*` tags still
+trigger `release.yml` directly, and it can also be dispatched manually with a `tag` input.
 
 Current version lives in `.release-please-manifest.json` and `version.txt`.
 Do not hand-tag releases: `v0.1.7` and `v1.0.7` both point at commit `43e179f`,

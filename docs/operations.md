@@ -53,8 +53,14 @@ Tanpa token/CLI, tiap adapter mode mock (UI tetap tampil untuk demo/screenshot):
 - Conventional commits decide the bump: `feat` → minor, `fix` → patch, `BREAKING CHANGE` → major.
 - Humans review and merge the Release PR. Only then does release-please create the GitHub
   Release plus a `vX.Y.Z` tag; there is no manual tagging step.
-- The existing `.github/workflows/release.yml` listens on `v*` tags and pushes the multi-arch
-  GHCR image with `:X.Y.Z`, `:X.Y` and `:latest` tags. It is unchanged by this automation.
+- `.github/workflows/release.yml` pushes the multi-arch GHCR image with `:X.Y.Z`, `:X.Y` and
+  `:latest`. It is reusable and is called by the `image` job of `release-please.yml` with the
+  new tag, because tags created with `GITHUB_TOKEN` do not trigger a tag `push` workflow.
+  Human-created `v*` tags still trigger it directly.
+- For a tag that already exists but has no image (e.g. one created before this fix), dispatch
+  `release` manually with input `tag: vX.Y.Z`, or run:
+  `gh workflow run release.yml --repo ProReka/ai-workspace-monitoring --field tag=vX.Y.Z`
+  Build/push is an artifact publication, not a production deploy; it still needs Owner approval.
 - `v0.1.7` and `v1.0.7` are duplicate tags on commit `43e179f`; the manifest pins `1.0.7` as
   the authoritative last release so release-please does not replay old commits or re-release.
 - Rollback: revert the automation PR. No tag, release, image or deployment is created until a
