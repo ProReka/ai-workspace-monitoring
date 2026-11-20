@@ -30,9 +30,19 @@ no fabricated URLs), and gotchas.
 - Keep UI text English; keep `--radius: 0` sharp-corner design tokens.
 - No secrets in code, fixtures, screenshots, or logs (CI secret gate must pass).
 - Mock fixture (`collector/mock_data.json`) must stay public-safe — regenerate via script, never hand-edit live data into it.
-- Update `docs/` when you change endpoints, shapes, or env vars. Update `CHANGELOG.md` under Unreleased.
+- Update `docs/` when you change endpoints, shapes, or env vars. Add notes to
+  `CHANGELOG.md` under `Unreleased` only — released sections are owned by release-please.
+- Use Conventional Commits on `main`: `feat:` bumps minor, `fix:` bumps patch,
+  `BREAKING CHANGE:` bumps major.
 
 ## Versioning
 
-SemVer. Maintainers tag `vX.Y.Z` on `main`; CI builds and pushes
-`ghcr.io/proreka/ai-workspace-monitoring:X.Y.Z` + `:latest` on tags.
+SemVer, automated by release-please (`.github/workflows/release-please.yml`).
+Every push to `main` opens or updates a Release PR. A maintainer reviews and merges
+that PR; release-please then creates the GitHub Release and the `vX.Y.Z` tag.
+The existing `.github/workflows/release.yml` builds and pushes
+`ghcr.io/proreka/ai-workspace-monitoring:X.Y.Z` + `:latest` on that tag.
+
+Current version lives in `.release-please-manifest.json` and `version.txt`.
+Do not hand-tag releases: `v0.1.7` and `v1.0.7` both point at commit `43e179f`,
+so the manifest value (`1.0.7`) is the single source of truth.
