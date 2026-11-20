@@ -16,6 +16,14 @@ All notable changes, newest first. Format: SemVer (`vX.Y.Z` tags on `main`).
 - Croppable yard around the building: grass and varied-size trees only, no pool and no outer border
 - More office details: corridor chairs and sofas, whiteboard, printer, coffee machine, stove, bookshelf and plants
 
+## [1.1.1](https://github.com/ProReka/ai-workspace-monitoring/compare/v1.1.0...v1.1.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **ci:** build release image when release-please creates a tag ([28045aa](https://github.com/ProReka/ai-workspace-monitoring/commit/28045aa26b4fe4c714ed8b50d987e7c279c8654b))
+* **ci:** build release image when release-please creates a tag ([f4ceea6](https://github.com/ProReka/ai-workspace-monitoring/commit/f4ceea6360136582f4bc80bdfebb66df81d0bfdd))
+
 ## [1.1.0](https://github.com/ProReka/ai-workspace-monitoring/compare/v1.0.7...v1.1.0) (2026-11-20)
 
 
