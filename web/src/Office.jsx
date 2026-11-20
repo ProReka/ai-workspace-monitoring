@@ -12,7 +12,25 @@ const MAX_K = 8;
 function Person({ lk, pose, activity, dim }) {
   const { skin, hair, shirt, pants } = lk;
   const rest = activity !== 'work';
-  const sit = pose === 'sit' || pose === 'desk' || pose === 'cup';
+  const sit = pose === 'sit' || pose === 'cup';
+  if (pose === 'desk') {
+    return (
+      <g transform="scale(.78)" opacity={dim ? 0.72 : 1}>
+        {R(-6, -1, 12, 2, 'rgba(0,0,0,.28)')}
+        {R(-5, -9, 10, 4, pants)}{R(-5, -9, 10, 1, 'rgba(255,255,255,.1)')}
+        <g className="torso">
+          {R(-5, -19, 10, 11, shirt)}{R(-4, -18, 8, 9, 'rgba(0,0,0,.14)')}{R(0, -18, 1, 9, 'rgba(255,255,255,.16)')}
+          <g className={rest ? 'arm rest' : 'arm a1'}>{R(-7, -24, 3, 9, shirt)}{R(-7, -26, 3, 3, skin)}</g>
+          <g className={rest ? 'arm rest2' : 'arm a2'}>{R(4, -24, 3, 9, shirt)}{R(4, -26, 3, 3, skin)}</g>
+          {R(-2, -20, 4, 2, skin)}
+          {R(-5, -28, 1, 5, hair)}{R(4, -28, 1, 5, hair)}
+          {R(-4, -29, 8, 10, hair)}{R(-3, -28, 6, 7, 'rgba(255,255,255,.08)')}
+          {R(-3, -27, 2, 1, 'rgba(255,255,255,.14)')}
+          {lk.deco === 1 && R(-3, -22, 6, 2, '#e2b04a')}
+        </g>
+      </g>
+    );
+  }
   const head = (<g>
     {R(-5, -24, 1, 3, hair)}{R(4, -24, 1, 3, hair)}
     {R(-4, -26, 8, 8, skin)}{R(-4, -27, 8, 3, hair)}{R(-5, -26, 2, 5, hair)}{R(3, -26, 2, 3, hair)}
@@ -43,7 +61,6 @@ function Person({ lk, pose, activity, dim }) {
         {lk.deco === 2 && R(-4, -16, 3, 4, '#e7e2d3')}
         {head}
       </g>
-      {pose === 'desk' && R(-6, -10, 12, 3, '#2b2f38')}
     </g>
   );
 }
@@ -129,9 +146,12 @@ function Screen({ a, b, d }) {
 function Chair({ x, y }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      {R(15, 30, 18, 9, '#5b4a38')}{R(16, 31, 16, 7, '#6d5c47')}{R(16, 31, 16, 1, '#8b785e')}
-      {R(14, 39, 20, 7, '#6b5b45')}{R(15, 39, 18, 1, '#8b785e')}{R(14, 45, 20, 1, '#443a2e')}
-      {R(15, 46, 2, 4, '#4a4f5c')}{R(31, 46, 2, 4, '#4a4f5c')}
+      {R(11, 39, 4, 9, '#3f4550')}{R(33, 39, 4, 9, '#3f4550')}
+      {R(12, 39, 3, 2, '#646d7a')}{R(33, 39, 3, 2, '#646d7a')}
+      {R(13, 39, 22, 7, '#3f4550')}{R(14, 40, 20, 5, '#535c69')}{R(14, 40, 20, 1, '#707a88')}
+      {R(14, 46, 20, 7, '#3f4550')}{R(15, 47, 18, 5, '#535c69')}{R(15, 47, 18, 1, '#707a88')}
+      {R(22, 53, 4, 3, '#2f343d')}{R(17, 55, 14, 2, '#2f343d')}
+      {R(17, 56, 2, 2, '#1d2129')}{R(29, 56, 2, 2, '#1d2129')}
     </g>
   );
 }
@@ -161,7 +181,7 @@ function Desk({ a, b, d, onAgent }) {
       {lk.deco === 1 && <>{R(7, 15, 6, 4, '#f4f1de')}{R(8, 16, 4, 1, '#c9c3a8')}{R(13, 14, 2, 5, '#e8e3d2')}</>}
       {lk.deco === 2 && <>{R(38, 14, 4, 4, '#e07a5f')}{R(39, 15, 2, 1, '#fff')}{R(38, 18, 4, 1, '#b6533c')}</>}
       {lk.deco === 3 && <>{R(37, 13, 3, 7, '#1e1e1e')}{R(36, 12, 5, 2, '#f2c14e')}{R(37, 14, 2, 1, '#5c6068')}</>}
-      <text className="plate" x={24} y={53} textAnchor="middle">
+      <text className="plate" x={24} y={34} textAnchor="middle">
         {wrapName(a.agent_name, 12).map((l, i) => <tspan key={i} x={24} dy={i ? 4.6 : 0}>{l}</tspan>)}
       </text>
     </g>
