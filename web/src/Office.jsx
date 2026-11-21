@@ -140,6 +140,7 @@ function Screen({ a, b, d }) {
       {fun === 'video' && <g className="fun">{R(x + 2, y + 2, 14, 7, '#2b3f7a')}{R(x + 7, y + 4, 4, 3, '#ffd166')}{R(x + 3, y + 8, 5, 1, '#8ab4f8')}</g>}
       {fun === 'book' && <g className="fun">{R(x + 2, y + 3, 6, 6, '#f6e7c1')}{R(x + 9, y + 3, 6, 6, '#f6e7c1')}{R(x + 8, y + 3, 1, 6, '#b08968')}</g>}
       {fun === 'game' && <g className="fun">{R(x + 3, y + 3, 12, 6, '#3b3f4a')}{R(x + 5, y + 5, 2, 2, '#4ade80')}{R(x + 11, y + 4, 1, 1, '#f87171')}{R(x + 9, y + 6, 1, 1, '#facc15')}</g>}
+      {fun === 'music' && <g className="fun">{R(x + 2, y + 3, 10, 5, '#3b3f4a')}{R(x + 6, y + 4, 2, 3, '#ffd166')}{R(x + 3, y + 7, 4, 1, '#8ab4f8')}{R(x + 9, y + 6, 1, 1, '#f87171')}</g>}
       {scr === 'idle' && !fun && <g className="saver">{R(x + 3, y + 3, 3, 3, '#6fb3ff')}</g>}
       {scr === 'off' && R(x + 1, y + 1, 4, 1, '#1d2129')}
     </g>
@@ -358,7 +359,7 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
         {R(x + 5, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}{R(x + 24, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}
       </g>)}
       <Plaque key={logo} cx={plaqueCx} y={8} name={name} logo={logo} />
-      <WallClock x={L.openRight - 20} y={20} c={c} />
+      <WallClock x={L.roomX + 55} y={WALL_H + 14} c={c} />
 
       {R(L.roomDoorX - 2, WALL_H, 4, L.corridorY - WALL_H, '#8d7258')}
       {R(L.roomX, L.pantryY - 4, ROOM_W - 16, 4, '#5c4a39')}
@@ -543,7 +544,7 @@ export default function Office({ snap, now, onAgent, tz }) {
               <stop offset="0" stopColor={k.top} /><stop offset="1" stopColor={k.bottom} />
             </linearGradient>
             <pattern id="oGround" width="16" height="16" patternUnits="userSpaceOnUse">
-              {R(0, 0, 16, 16, '#171c24')}{R(2, 4, 1, 1, '#1f2631')}{R(9, 2, 1, 1, '#202732')}{R(13, 10, 1, 1, '#1b222c')}{R(5, 13, 2, 1, '#1c232d')}
+              {R(0, 0, 16, 16, '#171c24')}
             </pattern>
             <pattern id="oOpen" width="16" height="16" patternUnits="userSpaceOnUse">
               {R(0, 0, 16, 16, '#5d7280')}{R(1, 1, 1, 1, '#657c8a')}{R(9, 1, 1, 1, '#657c8a')}{R(5, 9, 1, 1, '#536976')}{R(13, 9, 1, 1, '#536976')}
