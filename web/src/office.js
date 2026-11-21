@@ -217,10 +217,15 @@ export function plan(agents, L, prevBeh, nowS) {
       idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
       const roll = hash(id + ':stay:' + nowS) % 100;
       const mayLeave = nowS - idleSince >= AWAY_AFTER_S;
-      if (roll < 35) activity = 'leisure';
-      else if (!mayLeave || roll < 55) activity = 'idle';
-      else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
-      leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l:' + nowS) % 3] : '';
+      const leisurePick = ['video', 'book', 'game', 'music'][hash(id + ':l:' + nowS) % 4];
+      if (mayLeave) {
+        if (roll < 75) { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; leisure = ''; }
+        else if (roll < 90) { activity = 'leisure'; spot = desk; leisure = leisurePick; }
+        else { activity = 'idle'; spot = desk; leisure = ''; }
+      } else {
+        if (roll < 65) { activity = 'leisure'; spot = desk; leisure = leisurePick; }
+        else { activity = 'idle'; spot = desk; leisure = ''; }
+      }
       nextAt = nowS + nextDelay(id, nowS);
       if (spot.zone === 'desk' && old && old.spot.zone !== 'desk') idleSince = nowS;
     }

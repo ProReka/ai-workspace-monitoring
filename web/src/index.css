@@ -389,10 +389,10 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .office .wsname { font-size: 15px; font-weight: 700; fill: #f6d27a; paint-order: stroke;
   stroke: #5a3a12; stroke-width: 1.5px; letter-spacing: .04em; }
  .office .plate { font-size: 5.2px; font-weight: 700; fill: #fff; paint-order: stroke;
-  stroke: rgba(40,25,10,.85); stroke-width: 1.6px; }
+  stroke: rgba(40,25,10,.85); stroke-width: 1.6px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.office .desk:hover .plate, .office .desk:focus-visible .plate { opacity: 1; }
 .office .olabel { font-size: 5.6px; font-weight: 700; fill: #fff; paint-order: stroke;
-  stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 0; transition: opacity .15s; pointer-events: none; }
-.office .actor:hover .olabel { opacity: 1; }
+  stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 1; transition: opacity .15s; pointer-events: none; }
 .office .roomtag { font-size: 5px; font-weight: 700; fill: rgba(50,40,30,.65); letter-spacing: .12em; }
 .office .doortag { font-size: 4.6px; font-weight: 700; fill: #c9a227; paint-order: stroke; stroke: rgba(40,30,20,.7); stroke-width: 1px; }
 .office .zone { font-size: 5px; fill: rgba(40,30,20,.5); letter-spacing: .1em; }
