@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusOf } from './fmt.js';
-import { ROOM_W, WALL_H, hash, layout, legMs, look, plan, sky, tzClock, wrapName } from './office.js';
+import { WALL_H, hash, layout, legMs, look, plan, sky, tzClock, wrapName } from './office.js';
 
 const R = (x, y, w, h, fill, { key, ...rest } = {}) => <rect key={key} x={x} y={y} width={w} height={h} fill={fill} {...rest} />;
 const pointKey = (p) => Math.round(p.x) + ',' + Math.round(p.y);
@@ -327,10 +327,12 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
   return (
     <g transform={`translate(${L.BX} ${L.BY})`}>
       {R(0, 0, L.W, L.H, 'url(#oOpen)')}
-      {R(0, L.corridorY, L.openRight + 4, L.H - L.corridorY, 'url(#oCorridor)')}
+      {R(0, L.corridorY, L.W, L.H - L.corridorY, 'url(#oCorridor)')}
       {R(L.doorX - 70, L.corridorY, 140, L.H - L.corridorY, 'url(#oLobby)')}
-      {R(L.roomX, L.pantryY, ROOM_W - 16, L.pantryH, 'url(#oTileP)')}
-      {R(L.roomX, L.loungeY, ROOM_W - 16, L.corridorY - L.loungeY - 8, 'url(#oRug)')}
+      {R(L.roomX, WALL_H, L.W - L.roomX, L.corridorY - WALL_H, 'url(#oTileP)')}
+      {R(L.roomX, L.loungeY, L.W - L.roomX, L.corridorY - L.loungeY, 'url(#oRug)')}
+      {R(L.roomX, L.pantryY + L.pantryH, L.W - L.roomX, L.loungeY - L.pantryY - L.pantryH, '#a8896a')}
+      {R(L.roomX - 2, L.corridorY - 3, L.W - L.roomX + 2, 3, '#a8896a')}
       {R(0, 0, L.W, WALL_H, '#cfc3b0')}
       {R(0, WALL_H - 4, L.W, 4, '#7a5a46')}
       {R(0, 0, L.W, 4, '#e6dfd1')}
@@ -359,10 +361,9 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
         {R(x + 5, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}{R(x + 24, 9, 1, 24, '#e6dfd1', { opacity: 0.7 })}
       </g>)}
       <Plaque key={logo} cx={plaqueCx} y={8} name={name} logo={logo} />
-      <WallClock x={L.roomX + 55} y={WALL_H + 14} c={c} />
+      <WallClock x={L.roomX + 84} y={21} c={c} />
 
       {R(L.roomDoorX - 2, WALL_H, 4, L.corridorY - WALL_H, '#8d7258')}
-      {R(L.roomX, L.pantryY - 4, ROOM_W - 16, 4, '#5c4a39')}
       {R(L.roomDoorX - 3, L.pantryDoorY - 13, 6, 26, '#cfc3b0')}
       {R(L.roomDoorX - 3, L.loungeDoorY - 13, 6, 26, '#cfc3b0')}
       <RoomDoor x={L.roomDoorX} y={L.pantryDoorY} label="PANTRY" vertical />
