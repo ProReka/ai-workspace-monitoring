@@ -7,10 +7,11 @@ export const ROOM_W = 126;
 const POD_GAP = 8;
 const OUT_X = 170;
 const OUT_Y = 48;
-const HOLD_S = 300;
-const AWAY_AFTER_S = 180;
+const HOLD_S = 40;
+const AWAY_AFTER_S = 24;
+export const MAX_K = 8;
 
-export const legMs = (a, b) => Math.min(9000, Math.max(700, Math.hypot(b.x - a.x, b.y - a.y) * 55));
+export const legMs = (a, b) => Math.min(3500, Math.max(600, Math.hypot(b.x - a.x, b.y - a.y) * 32));
 
 export function hash(s) {
   let h = 0x811c9dc5;
@@ -22,6 +23,29 @@ export function hash(s) {
 }
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+export const fitScale = (stage, L) => Math.min(stage.w / L.VW, stage.h / L.VH);
+
+const panLimit = (k, L, stage) => ({
+  x: Math.max(0, (k * L.VW - stage.w) / 2),
+  y: Math.max(0, (k * L.VH - stage.h) / 2),
+});
+
+export function clampView(v, L, stage) {
+  const k = clamp(v.k, fitScale(stage, L), MAX_K);
+  const lim = panLimit(k, L, stage);
+  return { k, tx: clamp(v.tx, -lim.x, lim.x), ty: clamp(v.ty, -lim.y, lim.y) };
+}
+
+export function zoomView(v, factor, cursor, L, stage) {
+  const nk = clamp(v.k * factor, fitScale(stage, L), MAX_K);
+  const q = cursor || { x: stage.w / 2, y: stage.h / 2 };
+  const px = (q.x - stage.w / 2 + v.k * L.VW / 2 - v.tx) / v.k;
+  const py = (q.y - stage.h / 2 + v.k * L.VH / 2 - v.ty) / v.k;
+  return clampView({ k: nk,
+    tx: v.tx + (v.k - nk) * (px - L.VW / 2),
+    ty: v.ty + (v.k - nk) * (py - L.VH / 2) }, L, stage);
+}
 
 function mix(a, b, t) {
   const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
@@ -173,27 +197,29 @@ function homeSpot(id, L) {
   return { ...pool[hash(id + ':place') % pool.length] };
 }
 
-const nextDelay = (id, nowS) => 60 + hash(id + ':when:' + nowS) % 90;
+const nextDelay = (id, nowS) => 8 + hash(id + ':when:' + nowS) % 17;
 const FUN = ['video', 'book', 'game', 'music'];
 
 export function plan(agents, L, prevBeh, nowS) {
   const next = {};
+  const musicId = agents.filter((a) => a.runtime_online && !a.running && !(a.pending_total > 0)).at(-1)?.agent_id;
   agents.forEach((a, i) => {
     const id = a.agent_id;
     const desk = deskSpot(a, i, L);
     const old = prevBeh && prevBeh[id];
     const work = a.running > 0;
     const pending = (a.pending_total || 0) > 0;
+    const music = id === musicId;
     let spot = desk;
     let activity = 'idle';
     let leisure = '';
     let idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
     let holdUntil = old ? old.holdUntil || 0 : 0;
-    let nextAt = old ? old.nextAt || 0 : nowS + 20 + hash(id + ':phase') % 150;
+    let nextAt = old ? old.nextAt || 0 : nowS + 2 + hash(id + ':phase') % 20;
 
     if (!old) {
-      const home = homeSpot(id, L);
-      if (home) { spot = home; activity = 'away'; } else { activity = 'leisure'; leisure = FUN[hash(id + ':l') % FUN.length]; }
+      const home = music ? null : homeSpot(id, L);
+      if (home) { spot = home; activity = 'away'; } else { activity = 'leisure'; leisure = music ? 'music' : FUN[hash(id + ':l') % FUN.length]; }
     } else {
       spot = old.spot;
       activity = old.activity;
@@ -208,25 +234,29 @@ export function plan(agents, L, prevBeh, nowS) {
       holdUntil = 0; idleSince = nowS; nextAt = 0;
     } else if (old && old.activity === 'work' && !work) {
       if (!holdUntil) holdUntil = nowS + HOLD_S;
-      activity = 'relax'; spot = desk; leisure = ''; idleSince = nowS;
+      activity = 'relax'; spot = desk; leisure = music ? 'music' : ''; idleSince = nowS;
     } else if (nowS < holdUntil) {
-      activity = 'relax'; spot = desk; leisure = ''; idleSince = nowS;
+      activity = 'relax'; spot = desk; leisure = music ? 'music' : ''; idleSince = nowS;
     } else if (pending) {
       activity = hash(id + ':q') % 100 < 45 ? 'leisure' : 'queue';
       spot = desk;
-      leisure = activity === 'leisure' ? FUN[hash(id + ':l') % FUN.length] : '';
+      leisure = activity === 'leisure' ? (music ? 'music' : FUN[hash(id + ':l') % FUN.length]) : '';
     } else if (nowS >= nextAt) {
       const roll = hash(id + ':stay:' + nowS) % 100;
       const mayLeave = nowS - idleSince >= AWAY_AFTER_S;
       const away = old && old.spot.zone !== 'desk';
-      if (mayLeave && roll < (away ? 65 : 75)) {
+      if (mayLeave && !music && roll < (away ? 65 : 75)) {
         spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; leisure = '';
       } else {
-        spot = desk; activity = 'leisure'; leisure = FUN[hash(id + ':l:' + nowS) % FUN.length];
+        spot = desk; activity = 'leisure'; leisure = music ? 'music' : FUN[hash(id + ':l:' + nowS) % FUN.length];
       }
       nextAt = nowS + nextDelay(id, nowS);
     }
 
+    if (music && a.runtime_online && !work && !pending && spot.zone !== 'desk') {
+      spot = desk; activity = 'leisure'; leisure = 'music';
+    }
+    if (spot.zone === 'desk') spot = { ...spot, pose: 'desk' };
     const overload = work && pending;
     const route = old ? routeFor(old.spot, spot, L) : [];
     next[id] = { spot, activity, leisure, overload, holdUntil, idleSince, nextAt, route };

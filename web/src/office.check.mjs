@@ -1,6 +1,7 @@
 // Self-check for 2D Office helpers: `node src/office.check.mjs`
 import assert from 'node:assert/strict';
-import { CELL_W, WALL_H, deskSpot, indoorSpots, layout, legMs, outdoorSpots, plan, routeFor, sky, tzClock, wrapName } from './office.js';
+import { readFileSync } from 'node:fs';
+import { CELL_W, MAX_K, WALL_H, clampView, deskSpot, fitScale, indoorSpots, layout, legMs, outdoorSpots, plan, routeFor, sky, tzClock, wrapName, zoomView } from './office.js';
 
 const t = Date.UTC(2026, 10, 18, 5, 0, 0);
 assert.equal(tzClock(t, 'Asia/Jakarta').h, 12);
@@ -11,6 +12,17 @@ assert.equal(sky(0).day, 0);
 const L = layout(8);
 assert.equal(L.desks.length, 8);
 assert.ok(L.VW > L.W + 200 && L.VH > L.H, 'dark ground around a centered building');
+for (const stage of [{ w: 1440, h: 760 }, { w: 390, h: 700 }]) {
+  const fit = fitScale(stage, L);
+  assert.ok(fit > 0, 'stage has a positive fit scale');
+  assert.equal(clampView({ k: 0.01, tx: 500, ty: -500 }, L, stage).k, fit, 'zoom out stops at fit');
+  assert.equal(clampView({ k: fit, tx: 500, ty: 500 }, L, stage).tx, 0, 'no pan gap at fit');
+  assert.equal(clampView({ k: fit, tx: 500, ty: 500 }, L, stage).ty, 0, 'no pan gap at fit');
+  assert.equal(zoomView({ k: fit, tx: 0, ty: 0 }, 1 / 1.25, null, L, stage).k, fit, 'wheel/button zoom out clamped');
+  assert.equal(zoomView({ k: MAX_K, tx: 0, ty: 0 }, 1.25, null, L, stage).k, MAX_K, 'zoom in clamped');
+  const zin = zoomView({ k: fit, tx: 0, ty: 0 }, 1.5, null, L, stage);
+  assert.ok(zin.k > fit && Math.abs(zin.tx) <= (zin.k * L.VW - stage.w) / 2 + 1e-6, 'pan stays inside scaled scene');
+}
 const agents = Array.from({ length: 8 }, (_, i) => ({
   agent_id: 'a' + i, runtime_online: true, running: i < 2 ? 1 : 0, pending_total: i === 2 ? 3 : 0,
 }));
@@ -31,7 +43,8 @@ const cross = (r, x, y) => r.some((p, i) => {
   return horiz || vert;
 });
 assert.deepEqual(routeFor(seats[0], deskSpot(agents[0], 0, L), L), [], 'no desk round trip');
-assert.ok(legMs({ x: 0, y: 0 }, { x: 100, y: 0 }) >= 5000, 'walking speed is natural');
+const step = legMs({ x: 0, y: 0 }, { x: 100, y: 0 });
+assert.ok(step >= 2800 && step <= 3500, 'walking speed is natural');
 const idleOnly = agents.filter((a) => !a.running && !a.pending_total);
 const spawn = plan(idleOnly, L, null, 5000);
 assert.ok(Object.values(spawn).some((s) => s.spot.zone !== 'desk'), 'fresh load spreads agents across rooms');
@@ -94,16 +107,15 @@ const stopped = agents.map((a, i) => (i === 0 ? { ...a, running: 0 } : a));
 b = plan(stopped, L, b, 1005);
 assert.equal(b.a0.activity, 'relax');
 assert.ok(b.a0.holdUntil > 1005);
-assert.ok(b.a0.holdUntil - 1005 >= 300, 'long post-work hold');
-for (let t = 1010; t < 1005 + 300; t += 10) {
+assert.ok(b.a0.holdUntil - 1005 >= 40, 'post-work hold');
+for (let t = 1010; t < 1005 + 40; t += 10) {
   b = plan(stopped, L, b, t);
   assert.equal(b.a0.spot.zone, 'desk', 'stays at desk during hold');
 }
-b = plan(stopped, L, b, 1400);
-assert.notEqual(b.a0.activity, 'relax');
-assert.equal(b.a0.spot.zone, 'desk', 'still no leaving soon after hold');
+b = plan(stopped, L, b, 1050);
+assert.notEqual(b.a0.activity, 'relax', 'post-work hold ends');
 let left = false;
-for (let t = 1400; t < 1400 + 3600 && !left; t += 120) {
+for (let t = 1050; t < 1050 + 3600 && !left; t += 10) {
   b = plan(stopped, L, b, t);
   if (b.a0.spot.zone !== 'desk') left = true;
 }
@@ -121,6 +133,44 @@ const busy = plan(agents, L, null, 3000);
 assert.equal(busy.a0.overload, false);
 const ov = agents.map((a, i) => (i === 0 ? { ...a, pending_total: 2 } : a));
 assert.equal(plan(ov, L, null, 3000).a0.overload, true, 'pending while working = overload');
+
+const musicSpawn = plan(idleOnly, L, null, 10000);
+assert.ok(Object.values(musicSpawn).some((s) => s.activity !== 'work' && s.leisure === 'music'), 'idle music indicator');
+for (const s of Object.values(musicSpawn)) {
+  if (s.spot.zone === 'desk') assert.equal(s.spot.pose, 'desk', 'seated at desk');
+}
+const decisions = Object.fromEntries(idleOnly.map((a) => [a.agent_id, []]));
+let dyn = musicSpawn;
+for (let t = 10001; t <= 10030; t++) {
+  const prev = dyn;
+  dyn = plan(idleOnly, L, prev, t);
+  for (const a of idleOnly) {
+    const id = a.agent_id;
+    const before = prev[id], after = dyn[id];
+    if (before.spot.key !== after.spot.key || before.activity !== after.activity
+      || before.leisure !== after.leisure || before.nextAt !== after.nextAt) decisions[id].push(t);
+    if (before.spot.zone === 'desk' && after.spot.zone === 'desk') {
+      assert.equal(after.route.length, 0, 'no desk to desk route');
+    }
+    if (after.spot.zone === 'desk') assert.equal(after.spot.pose, 'desk', 'seated at desk');
+  }
+}
+const movers = idleOnly.filter((a) => decisions[a.agent_id].length > 0);
+assert.ok(movers.length >= Math.ceil(idleOnly.length * 0.6), 'most idle agents decide within 30 seconds');
+assert.ok(new Set(movers.flatMap((a) => decisions[a.agent_id])).size > 1, 'decisions are not synchronized');
+
+const css = readFileSync(new URL('./index.css', import.meta.url), 'utf8');
+const officeSrc = readFileSync(new URL('./Office.jsx', import.meta.url), 'utf8');
+assert.match(css, /\.office \.olabel \{[^}]*opacity: 0;/, 'labels hidden by default');
+assert.match(css, /\.actor\.show-label \.olabel \{ opacity: 1; \}/, 'person hover/focus shows label');
+assert.match(css, /\.desk\.show-label \.plate \{ opacity: 1; \}/, 'desk hover/focus shows plate');
+assert.match(css, /\.office \.lovl \{ mix-blend-mode: overlay; \}/, 'lighting blend');
+assert.match(css, /prefers-reduced-motion/, 'reduced motion respected');
+assert.match(css, /\.music \.note/, 'music note animation');
+assert.match(officeSrc, /R\(0, 0, stage\.w, stage\.h, 'url\(#oGround\)'\)/, 'stage has no dark empty area');
+assert.match(officeSrc, /fill="url\(#oSunFall\)"/, 'window light falloff');
+assert.match(officeSrc, /music=\{b\.leisure === 'music'/, 'music indicator on agent');
+assert.match(officeSrc, /<g clipPath="url\(#oRoomClip\)">[\s\S]*?fill="url\(#oSunFall\)"/, 'window light clipped indoors');
 
 assert.deepEqual(wrapName('Technical Lead - Tanto'), ['Technical', 'Lead - Tanto']);
 assert.deepEqual(wrapName('Nova'), ['Nova']);

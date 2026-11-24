@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusOf } from './fmt.js';
-import { WALL_H, hash, layout, legMs, look, plan, sky, tzClock, wrapName } from './office.js';
+import { WALL_H, clampView, fitScale, hash, layout, legMs, look, plan, sky, tzClock, wrapName, zoomView } from './office.js';
 
 const R = (x, y, w, h, fill, { key, ...rest } = {}) => <rect key={key} x={x} y={y} width={w} height={h} fill={fill} {...rest} />;
 const pointKey = (p) => Math.round(p.x) + ',' + Math.round(p.y);
 const routeKey = (r) => r.map(pointKey).join(' ');
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const MIN_K = 0.4;
-const MAX_K = 8;
 
-function Person({ lk, pose, activity, dim }) {
+function MusicBadge() {
+  return (<g className="music">
+    {R(-8, -31, 16, 2, '#ffd166')}{R(-9, -29, 3, 6, '#ffd166')}{R(6, -29, 3, 6, '#ffd166')}
+    <g className="note">{R(10, -37, 2, 2, '#8ab4f8')}{R(12, -40, 1, 6, '#8ab4f8')}{R(12, -40, 3, 1, '#8ab4f8')}</g>
+  </g>);
+}
+
+function Person({ lk, pose, activity, dim, music }) {
   const { skin, hair, shirt, pants } = lk;
   const rest = activity !== 'work';
   const sit = pose === 'sit' || pose === 'cup';
@@ -29,6 +33,7 @@ function Person({ lk, pose, activity, dim }) {
           {R(-4, -30, 8, 7, 'rgba(255,255,255,.1)')}{R(-3, -29, 3, 1, 'rgba(255,255,255,.22)')}
           {R(-6, -27, 1, 3, skin)}{R(5, -27, 1, 3, skin)}
           {lk.deco === 1 && R(-3, -23, 6, 2, '#e2b04a')}
+          {music && <MusicBadge />}
         </g>
       </g>
     );
@@ -63,13 +68,14 @@ function Person({ lk, pose, activity, dim }) {
         </g>) : (<g>{R(5, -18, 3, 8, shirt)}{R(5, -11, 3, 4, skin)}{R(5, -11, 3, 1, shade)}</g>)}
         {lk.deco === 2 && R(-4, -17, 3, 4, '#e7e2d3')}
         {head}
+        {music && <MusicBadge />}
       </g>
     </g>
   );
 }
 
 
-function Actor({ a, b, route, onAgent }) {
+function Actor({ a, b, route, onAgent, show, onFocus }) {
   const [pos, setPos] = useState(route[0] || b.spot);
   const [leg, setLeg] = useState(null);
   const posRef = useRef(pos);
@@ -96,12 +102,19 @@ function Actor({ a, b, route, onAgent }) {
   }, [leg]);
   const st = statusOf(a);
   const walking = !!leg;
+  const label = `${a.agent_name} — ${st.label}`;
+  const open = () => onAgent(a.agent_id);
   return (
-    <g className={`actor${walking ? ' walking' : ''}${b.activity === 'work' && !walking ? ' typing' : ''}`}
+    <g className={`actor${walking ? ' walking' : ''}${b.activity === 'work' && !walking ? ' typing' : ''}${show ? ' show-label' : ''}`}
       style={{ transform: `translate(${pos.x}px, ${pos.y}px)`, transitionDuration: `${leg ? leg.ms : 0}ms` }}
-      onClick={() => onAgent(a.agent_id)} aria-hidden="true">
-      <title>{`${a.agent_name} — ${st.label}`}</title>
-      <Person lk={look(a.agent_id)} pose={walking ? 'walk' : b.spot.pose} activity={b.activity} dim={!a.runtime_online} />
+      role="button" tabIndex={0} aria-label={`${label}. Activate for details.`}
+      onClick={open}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
+      onPointerEnter={() => onFocus(a.agent_id)} onPointerLeave={() => onFocus(null)}
+      onFocus={() => onFocus(a.agent_id)} onBlur={() => onFocus(null)}>
+      <title>{label}</title>
+      <Person lk={look(a.agent_id)} pose={walking ? 'walk' : b.spot.pose} activity={b.activity} dim={!a.runtime_online}
+        music={b.leisure === 'music' && !walking && b.activity !== 'work' && b.activity !== 'offline'} />
       <text className="olabel" y={-30} textAnchor="middle">{a.agent_name}</text>
       {b.activity === 'work' && a.running > 1 && Array.from({ length: Math.min(2, a.running - 1) }, (_, i) =>
         <g key={i} className="taskwin" transform={`translate(${i ? 15 : -19} ${-40 - i * 4})`}>
@@ -160,15 +173,17 @@ function Chair({ x, y }) {
   );
 }
 
-function Desk({ a, b, d, onAgent }) {
+function Desk({ a, b, d, onAgent, show, onFocus }) {
   const scr = screenOf(a, b);
   const lk = look(a.agent_id);
   const st = statusOf(a);
   const label = `${a.agent_name}, ${st.label}${a.current?.kind_label ? ', ' + a.current.kind_label : ''}. Activate for details.`;
   const open = () => onAgent(a.agent_id);
   return (
-    <g className="desk" role="button" tabIndex={0} aria-label={label} onClick={open}
+    <g className={`desk${show ? ' show-label' : ''}`} role="button" tabIndex={0} aria-label={label} onClick={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
+      onPointerEnter={() => onFocus(a.agent_id)} onPointerLeave={() => onFocus(null)}
+      onFocus={() => onFocus(a.agent_id)} onBlur={() => onFocus(null)}
       transform={`translate(${d.x} ${d.y})`}>
       <title>{label.replace('. Activate for details.', '')}</title>
       <Chair x={0} y={0} />
@@ -400,7 +415,7 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       </g>
       <path d={`M0 0H${L.W}V${WALL_H}H0Z ${wins.map((x) => `M${x} 8h30v26h-30Z`).join(' ')}`} fill="#cfc3b0" fillRule="evenodd" />
       <g clipPath="url(#oRoomClip)">
-        {wins.map((x) => k.day > 0.3 && <polygon key={'s' + x} points={`${x},${WALL_H} ${x + 30},${WALL_H} ${x + 30 + shift},${WALL_H + 42} ${x + shift},${WALL_H + 42}`} fill="#fff1b8" opacity={0.42} />)}
+        {wins.map((x) => k.day > 0.3 && <polygon key={'s' + x} className="lovl" points={`${x},${WALL_H} ${x + 30},${WALL_H} ${x + 30 + shift},${WALL_H + 42} ${x + shift},${WALL_H + 42}`} fill="url(#oSunFall)" opacity={0.55 * k.day} />)}
       </g>
       {wins.map((x) => <g key={x}>
         <rect x={x} y={8} width={30} height={26} fill="none" stroke="#f3eee4" strokeWidth={2} />
@@ -500,21 +515,22 @@ export default function Office({ snap, now, onAgent, tz }) {
   const svgRef = useRef(null);
   const stageRef = useRef(null);
   const [view, setView] = useState({ k: 1, tx: 0, ty: 0 });
-  const [fitted, setFitted] = useState(false);
   const [stageSz, setStageSz] = useState(null);
   const [full, setFull] = useState(false);
+  const [focused, setFocused] = useState(null);
   const drag = useRef(null);
   const moved = useRef(false);
+  const stage = stageSz || { w: L.VW, h: L.VH };
+  const fit = fitScale(stage, L);
   const cx = L.VW / 2, cy = L.VH / 2;
-  const panLimit = (v) => ({
-    x: Math.max(120, L.VW * (v.k - 1) / 2 + 120),
-    y: Math.max(120, L.VH * (v.k - 1) / 2 + 120),
-  });
 
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return undefined;
-    const ro = new ResizeObserver(([e]) => setStageSz({ w: e.contentRect.width, h: e.contentRect.height }));
+    const ro = new ResizeObserver(([e]) => {
+      const w = e.contentRect.width, h = e.contentRect.height;
+      if (w > 0 && h > 0) setStageSz({ w, h });
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -526,33 +542,25 @@ export default function Office({ snap, now, onAgent, tz }) {
   }, []);
 
   useEffect(() => {
-    if (!stageSz || fitted) return;
-    const s0 = Math.min(stageSz.w / L.VW, stageSz.h / L.VH);
-    const nk = clamp(Math.min(stageSz.w / (L.W * s0), stageSz.h / (L.H * s0)), MIN_K, MAX_K);
-    setView({ k: nk, tx: 0, ty: 0 });
-    setFitted(true);
-  }, [stageSz, L, fitted]);
+    if (!stageSz) return;
+    const nextFit = fitScale(stageSz, L);
+    setView((v) => clampView({ k: Math.max(v.k, nextFit), tx: v.tx, ty: v.ty }, L, stageSz));
+  }, [stageSz, L.VW, L.VH]);
 
-  const zoomAt = (factor, p) => setView((v) => {
-    const nk = clamp(v.k * factor, MIN_K, MAX_K);
-    const q = p || { x: cx, y: cy };
-    const lim = panLimit(v);
-    return { k: nk,
-      tx: clamp(v.tx + (v.k - nk) * (q.x - cx), -lim.x, lim.x),
-      ty: clamp(v.ty + (v.k - nk) * (q.y - cy), -lim.y, lim.y) };
-  });
+  const zoomAt = (factor, p) => setView((v) => zoomView(v, factor, p, L, stage));
   const svgPoint = (e) => {
     const svg = svgRef.current;
-    if (!svg) return { x: cx, y: cy };
+    const mid = { x: stage.w / 2, y: stage.h / 2 };
+    if (!svg) return mid;
     const p = svg.createSVGPoint();
     p.x = e.clientX; p.y = e.clientY;
     const m = svg.getScreenCTM();
-    return m ? p.matrixTransform(m.inverse()) : { x: cx, y: cy };
+    return m ? p.matrixTransform(m.inverse()) : mid;
   };
   const onWheel = (e) => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, svgPoint(e)); };
   const onDown = (e) => {
     if (e.button !== 0) return;
-    drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty, s: svgRef.current?.getScreenCTM()?.a || 1 };
+    drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty };
     moved.current = false;
   };
   const onMove = (e) => {
@@ -560,20 +568,16 @@ export default function Office({ snap, now, onAgent, tz }) {
     if (!d) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (Math.hypot(dx, dy) > 4) moved.current = true;
-    setView((v) => {
-      const lim = panLimit(v);
-      return { ...v, tx: clamp(d.tx + dx / d.s, -lim.x, lim.x), ty: clamp(d.ty + dy / d.s, -lim.y, lim.y) };
-    });
+    setView((v) => clampView({ ...v, tx: d.tx + dx, ty: d.ty + dy }, L, stage));
   };
   const onUp = () => { drag.current = null; };
   const toggleFull = () => {
     const el = stageRef.current;
     if (document.fullscreenElement === el) document.exitFullscreen?.();
     else el?.requestFullscreen?.();
-    setFitted(false);
   };
   const order = [...agents].sort((p, q) => (beh[p.agent_id]?.spot.y || 0) - (beh[q.agent_id]?.spot.y || 0));
-  const scene = `translate(${cx - view.k * cx + view.tx} ${cy - view.k * cy + view.ty}) scale(${view.k})`;
+  const scene = `translate(${stage.w / 2 - view.k * cx + view.tx} ${stage.h / 2 - view.k * cy + view.ty}) scale(${view.k})`;
 
   return (
     <div className="office">
@@ -583,7 +587,7 @@ export default function Office({ snap, now, onAgent, tz }) {
           {String(c.h).padStart(2, '0')}:{String(c.m).padStart(2, '0')}:{String(c.s).padStart(2, '0')} {c.zone} · {c.date}</span>
       </h2>
       <div className="ostage" ref={stageRef}>
-        <svg ref={svgRef} viewBox={`0 0 ${L.VW} ${L.VH}`} role="group"
+        <svg ref={svgRef} viewBox={`0 0 ${stage.w} ${stage.h}`} role="group"
           aria-label={`2D office of ${name}: ${agents.length} desks`}
           onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
           onClickCapture={(e) => { if (moved.current) { e.stopPropagation(); e.preventDefault(); moved.current = false; } }}>
@@ -610,6 +614,10 @@ export default function Office({ snap, now, onAgent, tz }) {
             <radialGradient id="oScrW"><stop offset="0" stopColor="#7dffb0" stopOpacity={0.75} /><stop offset="1" stopColor="#3ad07a" stopOpacity={0} /></radialGradient>
             <radialGradient id="oScrI"><stop offset="0" stopColor="#8ec5ff" stopOpacity={0.45} /><stop offset="1" stopColor="#4a8fe0" stopOpacity={0} /></radialGradient>
             <radialGradient id="oLight"><stop offset="0" stopColor="#ffd98a" stopOpacity={0.9} /><stop offset="0.18" stopColor="#ffd98a" stopOpacity={0.62} /><stop offset="0.45" stopColor="#ffd98a" stopOpacity={0.2} /><stop offset="0.72" stopColor="#ffd98a" stopOpacity={0.035} /><stop offset="1" stopColor="#ffd98a" stopOpacity={0} /></radialGradient>
+            <linearGradient id="oSunFall" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fff1b8" stopOpacity={0.7} /><stop offset="0.3" stopColor="#fff1b8" stopOpacity={0.42} />
+              <stop offset="0.7" stopColor="#fff1b8" stopOpacity={0.1} /><stop offset="1" stopColor="#fff1b8" stopOpacity={0} />
+            </linearGradient>
             <pattern id="oWood" width="24" height="6" patternUnits="userSpaceOnUse">
               {R(0, 0, 24, 6, '#9a6c43')}{R(0, 5, 24, 1, '#7f5634')}{R(8, 0, 1, 5, '#8a5f3a')}{R(2, 2, 6, 1, '#a8794a')}
             </pattern>
@@ -622,17 +630,23 @@ export default function Office({ snap, now, onAgent, tz }) {
               {R(0, 0, 6, 6, '#7c4f86')}{R(0, 0, 3, 3, '#8a5c94')}
             </pattern>
           </defs>
+          <g pointerEvents="none">
+            {R(0, 0, stage.w, stage.h, 'url(#oGround)')}
+            {R(0, 0, stage.w, stage.h, 'url(#oGrass)', { opacity: k.day })}
+          </g>
           <g transform={scene}>
             <Yard L={L} k={k} />
             <OfficeRoom L={L} c={c} k={k} name={name} logo={snap.meta?.office_logo || ''}>
-              {agents.map((a, i) => <Desk key={a.agent_id} a={a} b={beh[a.agent_id] || {}} d={L.desks[i]} onAgent={onAgent} />)}
+              {agents.map((a, i) => <Desk key={a.agent_id} a={a} b={beh[a.agent_id] || {}} d={L.desks[i]} onAgent={onAgent}
+                show={focused === a.agent_id} onFocus={setFocused} />)}
             </OfficeRoom>
             <g pointerEvents="none">
               {agents.map((a, i) => <Screen key={a.agent_id} a={a} b={beh[a.agent_id] || {}} d={{ x: L.BX + L.desks[i].x, y: L.BY + L.desks[i].y }} />)}
             </g>
             {order.map((a) => {
               const b = beh[a.agent_id];
-              return b ? <Actor key={a.agent_id} a={a} b={b} route={b.route} onAgent={onAgent} /> : null;
+              return b ? <Actor key={a.agent_id} a={a} b={b} route={b.route} onAgent={onAgent}
+                show={focused === a.agent_id} onFocus={setFocused} /> : null;
             })}
             <Lighting L={L} k={k} glows={agents.flatMap((a, i) => {
               const sc = screenOf(a, beh[a.agent_id] || {});
@@ -643,11 +657,11 @@ export default function Office({ snap, now, onAgent, tz }) {
         <div className="otools">
           <button title="Zoom in" aria-label="Zoom in" onClick={() => zoomAt(1.25)}><i className="ph ph-plus"></i></button>
           <button title="Zoom out" aria-label="Zoom out" onClick={() => zoomAt(1 / 1.25)}><i className="ph ph-minus"></i></button>
-          <button title="Fit office" aria-label="Fit office" onClick={() => { setFitted(false); setView({ k: 1, tx: 0, ty: 0 }); }}>
+          <button title="Fit office" aria-label="Fit office" onClick={() => setView({ k: fit, tx: 0, ty: 0 })}>
             <i className="ph ph-corners-out"></i></button>
           <button title={full ? 'Exit fullscreen' : 'Fullscreen'} aria-label={full ? 'Exit fullscreen' : 'Fullscreen'}
             onClick={toggleFull}><i className={full ? 'ph ph-fullscreen-exit' : 'ph ph-fullscreen'}></i></button>
-          <span className="oz" title="Zoom level">{Math.round(view.k * 100)}%</span>
+          <span className="oz" title="Zoom level">{Math.round(view.k / fit * 100)}%</span>
         </div>
       </div>
     </div>
