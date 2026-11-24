@@ -395,7 +395,6 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 1; transition: opacity .15s; pointer-events: none; }
 .office .lmul { mix-blend-mode: multiply; }
 .office .lovl { mix-blend-mode: overlay; }
-.office .lscr { mix-blend-mode: screen; }
 .office .roomtag { font-size: 5px; font-weight: 700; fill: rgba(50,40,30,.65); letter-spacing: .12em; }
 .office .doortag { font-size: 4.6px; font-weight: 700; fill: #c9a227; paint-order: stroke; stroke: rgba(40,30,20,.7); stroke-width: 1px; }
 .office .zone { font-size: 5px; fill: rgba(40,30,20,.5); letter-spacing: .1em; }

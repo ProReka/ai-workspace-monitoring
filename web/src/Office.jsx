@@ -310,18 +310,15 @@ function Lighting({ L, k, glows }) {
   return (
     <g transform={`translate(${L.BX} ${L.BY})`} pointerEvents="none">
       {dark > 0.02 && R(0, WALL_H, L.W, L.H - WALL_H, '#5a64a0', { className: 'lmul', opacity: dark })}
-      {lit && <g className="lovl">
-        {fixtures(L).map(([x, y], i) => <g key={i}>
-          <circle cx={x} cy={y + 10} r={78} fill="url(#oLight)" />
-        </g>)}
+      {lit && <g>
+        {fixtures(L).map(([x, y], i) => <circle key={i} className="lovl" cx={x} cy={y + 10} r={68} fill="url(#oLight)" />)}
       </g>}
-      {lit && <g className="lscr">
-        {fixtures(L).map(([x, y], i) => <circle key={i} cx={x} cy={y + 10} r={56} fill="url(#oGlow)" />)}
-      </g>}
-      {k.night > 0.1 && <g className="lscr" opacity={Math.min(1, k.night * 1.4)}>
+      {k.night > 0.1 && <g>
         {glows.map(([x, y, work], i) => <g key={'g' + i}>
-          <ellipse cx={x} cy={y + 12} rx={work ? 30 : 16} ry={work ? 22 : 12} fill={work ? 'url(#oScrW)' : 'url(#oScrI)'} />
-          {work && <ellipse cx={x} cy={y + 6} rx={12} ry={8} fill="url(#oScrW)" />}
+          <ellipse className="lovl" opacity={Math.min(1, k.night * 1.4)} cx={x} cy={y + 12}
+            rx={work ? 30 : 16} ry={work ? 22 : 12} fill={work ? 'url(#oScrW)' : 'url(#oScrI)'} />
+          {work && <ellipse className="lovl" opacity={Math.min(1, k.night * 1.4)} cx={x} cy={y + 6}
+            rx={12} ry={8} fill="url(#oScrW)" />}
         </g>)}
       </g>}
     </g>
@@ -612,7 +609,7 @@ export default function Office({ snap, now, onAgent, tz }) {
             <clipPath id="oRoomClip"><rect x={0} y={WALL_H} width={L.W} height={L.H - WALL_H} /></clipPath>
             <radialGradient id="oScrW"><stop offset="0" stopColor="#7dffb0" stopOpacity={0.75} /><stop offset="1" stopColor="#3ad07a" stopOpacity={0} /></radialGradient>
             <radialGradient id="oScrI"><stop offset="0" stopColor="#8ec5ff" stopOpacity={0.45} /><stop offset="1" stopColor="#4a8fe0" stopOpacity={0} /></radialGradient>
-            <radialGradient id="oLight"><stop offset="0" stopColor="#ffcf7a" stopOpacity={1.000} /><stop offset="0.125" stopColor="#ffcf7a" stopOpacity={0.745} /><stop offset="0.25" stopColor="#ffcf7a" stopOpacity={0.531} /><stop offset="0.375" stopColor="#ffcf7a" stopOpacity={0.356} /><stop offset="0.5" stopColor="#ffcf7a" stopOpacity={0.218} /><stop offset="0.625" stopColor="#ffcf7a" stopOpacity={0.116} /><stop offset="0.75" stopColor="#ffcf7a" stopOpacity={0.047} /><stop offset="0.875" stopColor="#ffcf7a" stopOpacity={0.010} /><stop offset="1" stopColor="#ffcf7a" stopOpacity={0.000} /></radialGradient>
+            <radialGradient id="oLight"><stop offset="0" stopColor="#ffd98a" stopOpacity={0.9} /><stop offset="0.18" stopColor="#ffd98a" stopOpacity={0.62} /><stop offset="0.45" stopColor="#ffd98a" stopOpacity={0.2} /><stop offset="0.72" stopColor="#ffd98a" stopOpacity={0.035} /><stop offset="1" stopColor="#ffd98a" stopOpacity={0} /></radialGradient>
             <pattern id="oWood" width="24" height="6" patternUnits="userSpaceOnUse">
               {R(0, 0, 24, 6, '#9a6c43')}{R(0, 5, 24, 1, '#7f5634')}{R(8, 0, 1, 5, '#8a5f3a')}{R(2, 2, 6, 1, '#a8794a')}
             </pattern>
