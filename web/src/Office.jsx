@@ -292,6 +292,34 @@ function RoomDoor({ x, y, label, vertical }) {
     </g>);
 }
 
+function fixtures(L) {
+  const out = [];
+  for (let c = 0; c < L.cols; c += 2) {
+    const x = L.desks[c].x + (c + 1 < L.cols ? 48 : 24);
+    for (let r = 0; r < L.rows; r++) out.push([x, L.top + r * 70 + 30]);
+  }
+  out.push([L.roomX + 50, L.pantryY + 30], [L.roomX + 55, L.loungeY + 40],
+    [40, L.corridorY + 24], [L.W - 40, L.corridorY + 24], [L.doorX, L.H - 26]);
+  return out;
+}
+
+function Lighting({ L, k }) {
+  const lit = k.night > 0.3;
+  const dark = Math.min(1, k.night) * 0.62;
+  return (
+    <g transform={`translate(${L.BX} ${L.BY})`} pointerEvents="none">
+      {dark > 0.02 && R(0, WALL_H, L.W, L.H - WALL_H, '#1a2350', { className: 'lmul', opacity: dark })}
+      {lit && <g className="lovl">
+        {fixtures(L).map(([x, y], i) => <g key={i}>
+          <ellipse cx={x} cy={y + 10} rx={58} ry={50} fill="url(#oLight)" />
+          <ellipse cx={x} cy={y + 8} rx={24} ry={20} fill="url(#oLight)" />
+        </g>)}
+      </g>}
+      {lit && <g className="lscr">{fixtures(L).map(([x, y], i) => <circle key={i} cx={x} cy={y + 8} r={22} fill="url(#oGlow)" />)}</g>}
+    </g>
+  );
+}
+
 function OfficeRoom({ L, c, k, name, logo, children }) {
   const half = Math.floor((L.openRight - 30) / 2);
   const plaqueCx = Math.max(70, half);
@@ -301,36 +329,35 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
   wins.push(L.roomX + 22);
   const shift = (k.sunX - 0.5) * -50;
   const lit = k.night > 0.3;
-  const fix = [];
-  for (let x = 24; x < L.openRight - 10; x += 60) for (let y = L.top + 30; y < L.openBottom; y += 80) fix.push([x, y]);
-  fix.push([L.roomX + 54, L.pantryY + 46], [L.roomX + 54, L.loungeY + 44], [L.openRight / 2, L.corridorY + 30], [L.doorX, L.H - 16]);
-  const lamp = (<g pointerEvents="none">
-    {fix.map(([x, y], i) => <g key={i}>
-      {R(x - 3, y - 1, 6, 2, '#3a3f4a')}{R(x - 2, y + 1, 4, 1, lit ? '#fff1b8' : '#cfd3da')}
-      {lit && <circle cx={x} cy={y + 6} r={46} fill="url(#oGlow)" />}
-    </g>)}
-    {lit && R(0, WALL_H, L.W, L.H - WALL_H, '#ffd98a', { opacity: 0.07 })}
+  const fx = fixtures(L);
+  const x0 = L.roomX, P = L.pantryY, Y = L.loungeY, C = L.corridorY, ob = L.openBottom;
+  const plant = (x, y, big) => (<g>
+    {R(x - 4, y - 6, 8, 6, '#8f4a2c')}{R(x - 4, y - 6, 8, 1, '#b5653f')}
+    {R(x - (big ? 7 : 5), y - (big ? 18 : 13), big ? 14 : 10, big ? 12 : 8, '#2f6b2f')}
+    {R(x - (big ? 5 : 3), y - (big ? 22 : 16), big ? 10 : 6, 5, '#3f8a3a')}{R(x - 2, y - (big ? 20 : 15), 3, 2, '#5fb352')}
   </g>);
-  const orn = (<g>
-    {R(L.openRight - 70, WALL_H + 8, 14, 12, '#6b4a2b')}{R(L.openRight - 69, WALL_H + 9, 12, 5, '#e0b84f')}{R(L.openRight - 69, WALL_H + 15, 12, 4, '#e07a5f')}
-    {R(L.roomX + 2, L.pantryY + 70, 10, 14, '#6b4a2b')}{R(L.roomX + 4, L.pantryY + 72, 6, 3, '#e0b84f')}
-    {R(L.roomX + 98, L.loungeY + 56, 6, 4, '#8f4a2c')}{R(L.roomX + 97, L.loungeY + 50, 8, 6, '#4b8a3a')}{R(L.roomX + 99, L.loungeY + 47, 4, 3, '#5fb352')}
-    {R(L.roomX + 4, L.loungeY + 56, 6, 4, '#8f4a2c')}{R(L.roomX + 3, L.loungeY + 50, 8, 6, '#4b8a3a')}{R(L.roomX + 5, L.loungeY + 47, 4, 3, '#5fb352')}
-    {R(L.roomX + 36, L.loungeY + 2, 22, 10, '#f4f1e8')}{R(L.roomX + 38, L.loungeY + 4, 18, 6, '#6fb3ff')}{R(L.roomX + 38, L.loungeY + 8, 18, 2, '#4b8a3a')}
-    {R(L.roomX + 70, L.pantryY + 40, 12, 12, '#f4f1e8')}{R(L.roomX + 72, L.pantryY + 42, 8, 8, '#d17a49')}
-    {R(8, L.corridorY + 2, 10, 10, '#4b8a3a')}{R(10, L.corridorY + 12, 6, 5, '#8f4a2c')}
-    {R(L.openRight - 16, L.corridorY + 2, 10, 10, '#5fb352')}{R(L.openRight - 14, L.corridorY + 12, 6, 5, '#8f4a2c')}
-    {R(L.doorX - 34, L.H - 14, 10, 8, '#4b8a3a')}{R(L.doorX - 32, L.H - 7, 6, 4, '#8f4a2c')}
-    {R(L.doorX + 24, L.H - 14, 10, 8, '#4b8a3a')}{R(L.doorX + 26, L.H - 7, 6, 4, '#8f4a2c')}
-    {R(L.doorX - 24, L.H - 6, 48, 3, '#7c4f86')}
+  const sofa = (x, y, w, c1, c2, c3) => (<g>
+    {R(x, y, w, 9, c1)}{R(x, y + 9, w, 13, c2)}{R(x - 4, y + 2, 5, 20, c1)}{R(x + w - 1, y + 2, 5, 20, c1)}
+    {Array.from({ length: Math.max(1, Math.round(w / 30)) }, (_, i) => {
+      const cw = (w - 4) / Math.max(1, Math.round(w / 30));
+      return <g key={i}>{R(x + 2 + i * cw, y + 10, cw - 2, 10, c3)}{R(x + 2 + i * cw, y + 10, cw - 2, 1, 'rgba(255,255,255,.25)')}</g>;
+    })}
+    {R(x - 4, y + 22, w + 8, 2, 'rgba(0,0,0,.25)')}
   </g>);
+  const pods = [];
+  for (let c = 0; c < L.cols && c < L.desks.length; c += 2) {
+    const w = c + 1 < L.cols && c + 1 < L.desks.length ? 96 : 48;
+    pods.push(R(L.desks[c].x - 3, L.top - 3, w + 6, L.rows * 70 - 6, '#4f6472', { key: 'pod' + c }));
+    pods.push(R(L.desks[c].x - 3, L.top - 3, w + 6, 1, '#6a808e', { key: 'pl' + c }));
+  }
   return (
     <g transform={`translate(${L.BX} ${L.BY})`}>
       {R(0, 0, L.W, L.H, 'url(#oOpen)')}
       {R(0, L.corridorY, L.W, L.H - L.corridorY, 'url(#oCorridor)')}
       {R(L.doorX - 70, L.corridorY, 140, L.H - L.corridorY, 'url(#oLobby)')}
       {R(L.roomX, WALL_H, L.W - L.roomX, L.corridorY - WALL_H, 'url(#oTileP)')}
-      {R(L.roomX, L.loungeY, L.W - L.roomX, L.corridorY - L.loungeY, 'url(#oRug)')}
+      {pods}
+      {R(L.roomX, L.loungeY, L.W - L.roomX, L.corridorY - L.loungeY, 'url(#oWood)')}
       {R(L.roomX, L.pantryY + L.pantryH, L.W - L.roomX, L.loungeY - L.pantryY - L.pantryH, '#a8896a')}
       {R(L.roomX - 2, L.corridorY - 3, L.W - L.roomX + 2, 3, '#a8896a')}
       {R(0, 0, L.W, WALL_H, '#cfc3b0')}
@@ -374,59 +401,46 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       <text className="roomtag" x={L.openRight / 2} y={L.corridorY + 10} textAnchor="middle">CORRIDOR</text>
       <text className="roomtag" x={L.doorX} y={L.H - 10} textAnchor="middle">LOBBY</text>
 
-      {R(L.roomX + 6, L.pantryY + 8, 18, 24, '#5c6b78')}{R(L.roomX + 7, L.pantryY + 9, 16, 9, '#6e7d8a')}
-      {R(L.roomX + 8, L.pantryY + 10, 14, 8, '#2e2e33')}{R(L.roomX + 10, L.pantryY + 19, 10, 1, '#b8c0c7')}
-      {R(L.roomX + 10, L.pantryY + 18, 3, 3, '#d9483b')}{R(L.roomX + 16, L.pantryY + 18, 3, 3, '#4ade80')}
-      {R(L.roomX + 19, L.pantryY + 24, 2, 4, '#d8dde2')}{R(L.roomX + 7, L.pantryY + 31, 16, 1, '#4a5560')}
-      {R(L.roomX + 72, L.pantryY + 8, 22, 26, '#cdd3d9')}{R(L.roomX + 73, L.pantryY + 9, 20, 24, '#dce1e5')}
-      {R(L.roomX + 72, L.pantryY + 14, 22, 1, '#aab3bd')}{R(L.roomX + 75, L.pantryY + 18, 16, 12, '#e8ecef')}
-      {R(L.roomX + 78, L.pantryY + 23, 10, 2, '#6b7280')}{R(L.roomX + 84, L.pantryY + 20, 4, 2, '#9aa3ad')}
-      {R(L.roomX + 14, L.pantryY + 54, 58, 4, '#8b5a33')}{R(L.roomX + 14, L.pantryY + 58, 58, 2, '#a8794a')}
-      {R(L.roomX + 14, L.pantryY + 54, 58, 1, '#c4935e')}{R(L.roomX + 18, L.pantryY + 60, 2, 4, '#6b4526')}{R(L.roomX + 66, L.pantryY + 60, 2, 4, '#6b4526')}
-      {R(L.roomX + 30, L.pantryY + 58, 16, 4, '#6b5b45')}{R(L.roomX + 46, L.pantryY + 58, 16, 4, '#6b5b45')}
-      {R(L.roomX + 32, L.pantryY + 62, 2, 3, '#4a4f5c')}{R(L.roomX + 43, L.pantryY + 62, 2, 3, '#4a4f5c')}
-      {R(L.roomX + 48, L.pantryY + 62, 2, 3, '#4a4f5c')}{R(L.roomX + 59, L.pantryY + 62, 2, 3, '#4a4f5c')}
-      {R(L.roomX + 24, L.pantryY + 44, 8, 8, '#f4f1de')}{R(L.roomX + 25, L.pantryY + 45, 6, 2, '#d9cfae')}
-      {R(L.roomX + 56, L.pantryY + 44, 8, 8, '#e07a5f')}{R(L.roomX + 57, L.pantryY + 45, 6, 2, '#f4a58f')}
-      {R(L.roomX + 80, L.pantryY + 62, 16, 5, '#6b4a2b')}{R(L.roomX + 83, L.pantryY + 57, 9, 5, '#4b8a3a')}{R(L.roomX + 85, L.pantryY + 55, 5, 2, '#5fb352')}
+      {R(x0 + 2, WALL_H, 82, 14, '#6b4526')}{R(x0 + 2, WALL_H, 82, 9, '#ece7dc')}{R(x0 + 2, WALL_H + 9, 82, 1, '#c9c2b4')}
+      {[0, 1, 2, 3, 4, 5].map((i) => R(x0 + 8 + i * 13, WALL_H + 11, 4, 1, '#c4935e', { key: 'h' + i }))}
+      {R(x0 + 6, WALL_H - 3, 10, 10, '#2e2e33')}{R(x0 + 8, WALL_H, 6, 3, '#4a5560')}{R(x0 + 9, WALL_H + 4, 3, 2, '#f4f1e8')}{R(x0 + 14, WALL_H - 2, 1, 1, '#4ade80')}
+      {R(x0 + 28, WALL_H + 1, 16, 6, '#9aa3ad')}{R(x0 + 29, WALL_H + 2, 14, 4, '#cdd3d9')}{R(x0 + 35, WALL_H - 2, 2, 4, '#6b7280')}
+      {R(x0 + 56, WALL_H - 2, 18, 9, '#dce1e5')}{R(x0 + 57, WALL_H - 1, 12, 7, '#2e2e33')}{R(x0 + 70, WALL_H, 3, 1, '#4ade80')}
+      {R(x0 + 88, WALL_H - 8, 18, 32, '#aab3bd')}{R(x0 + 89, WALL_H - 7, 16, 30, '#e4e8eb')}{R(x0 + 88, WALL_H + 4, 18, 1, '#aab3bd')}
+      {R(x0 + 102, WALL_H - 4, 1, 6, '#8a939d')}{R(x0 + 102, WALL_H + 7, 1, 10, '#8a939d')}
+      {R(x0 + 36, P + 36, 10, 7, '#5c4a39')}{R(x0 + 54, P + 36, 10, 7, '#5c4a39')}
+      {R(x0 + 28, P + 44, 44, 13, '#a8794a')}{R(x0 + 28, P + 44, 44, 1, '#c4935e')}{R(x0 + 28, P + 57, 44, 3, '#7a5432')}
+      {R(x0 + 36, P + 48, 6, 4, '#f4f1e8')}{R(x0 + 58, P + 48, 6, 4, '#f4f1e8')}{R(x0 + 46, P + 47, 8, 5, '#e07a5f')}{R(x0 + 47, P + 46, 2, 2, '#5fb352')}
+      {R(x0 + 34, P + 62, 12, 6, '#5c4a39')}{R(x0 + 50, P + 62, 12, 6, '#5c4a39')}
+      {plant(x0 + 100, P + 86, true)}{R(x0 + 4, P + 76, 7, 9, '#4a5560')}{R(x0 + 4, P + 76, 7, 1, '#6b7280')}
 
-      {R(L.roomX + 6, L.loungeY + 16, 52, 8, '#356381')}{R(L.roomX + 6, L.loungeY + 24, 52, 14, '#4a85ab')}
-      {R(L.roomX + 9, L.loungeY + 24, 22, 12, '#5596bd')}{R(L.roomX + 33, L.loungeY + 24, 22, 12, '#457fa4')}
-      {R(L.roomX + 9, L.loungeY + 24, 22, 1, '#7db6d6')}{R(L.roomX + 33, L.loungeY + 24, 22, 1, '#6aa3c7')}
-      {R(L.roomX + 4, L.loungeY + 18, 5, 22, '#356381')}{R(L.roomX + 58, L.loungeY + 18, 5, 22, '#356381')}
-      {R(L.roomX + 6, L.loungeY + 38, 52, 2, '#2c5a78')}
-      {R(L.roomX + 66, L.loungeY + 16, 30, 8, '#6e4678')}{R(L.roomX + 66, L.loungeY + 24, 30, 14, '#7c4f86')}
-      {R(L.roomX + 69, L.loungeY + 24, 12, 12, '#8f62a0')}{R(L.roomX + 83, L.loungeY + 24, 10, 12, '#714b7d')}
-      {R(L.roomX + 64, L.loungeY + 18, 4, 22, '#5d3a66')}{R(L.roomX + 94, L.loungeY + 18, 4, 22, '#5d3a66')}
-      {R(L.roomX + 32, L.loungeY + 52, 32, 8, '#7a5432')}{R(L.roomX + 32, L.loungeY + 52, 32, 1, '#a8794a')}
-      {R(L.roomX + 34, L.loungeY + 60, 2, 4, '#5e3f24')}{R(L.roomX + 60, L.loungeY + 60, 2, 4, '#5e3f24')}
-      {R(L.roomX + 38, L.loungeY + 54, 11, 2, '#e8e2d3')}{R(L.roomX + 51, L.loungeY + 54, 9, 2, '#d9c8a8')}
-      {R(L.roomX + 74, L.loungeY + 36, 16, 18, '#6b4a2b')}{R(L.roomX + 75, L.loungeY + 37, 14, 16, '#835b37')}
-      {R(L.roomX + 76, L.loungeY + 38, 12, 3, '#e0b84f')}{R(L.roomX + 76, L.loungeY + 43, 12, 3, '#e07a5f')}
-      {R(L.roomX + 94, L.loungeY + 14, 16, 22, '#3a3f4a')}{R(L.roomX + 96, L.loungeY + 18, 12, 16, '#2b2f38')}
-      {R(L.roomX + 97, L.loungeY + 19, 10, 14, '#1d3b5c')}{R(L.roomX + 94, L.loungeY + 38, 16, 2, '#f2c14e')}
+      {R(x0 + 16, Y + 28, 78, C - Y - 40, '#5d3a66')}{R(x0 + 18, Y + 30, 74, C - Y - 44, 'url(#oRug)')}
+      {sofa(x0 + 12, Y + 12, 86, '#2c5a78', '#356381', '#4a85ab')}
+      {R(x0 + 34, Y + 44, 40, 10, '#7a5432')}{R(x0 + 34, Y + 44, 40, 1, '#a8794a')}{R(x0 + 36, Y + 54, 2, 3, '#5e3f24')}{R(x0 + 70, Y + 54, 2, 3, '#5e3f24')}
+      {R(x0 + 38, Y + 46, 10, 3, '#e8e2d3')}{R(x0 + 52, Y + 46, 4, 4, '#f4f1e8')}{R(x0 + 62, Y + 45, 6, 4, '#4b8a3a')}
+      {R(x0 + 42, Y + 56, 12, 6, '#e0b84f')}{R(x0 + 42, Y + 56, 12, 1, '#f2d27a')}
+      {R(x0 + 96, Y + 40, 12, 30, '#5c3f26')}{[0, 1, 2, 3].map((i) => <g key={'bk' + i}>
+        {R(x0 + 97, Y + 42 + i * 7, 10, 6, '#3a2818')}{R(x0 + 98, Y + 43 + i * 7, 2, 5, ['#e07a5f', '#6fb3ff', '#e0b84f', '#5fb352'][i])}
+        {R(x0 + 101, Y + 44 + i * 7, 2, 4, '#f4f1e8')}{R(x0 + 104, Y + 43 + i * 7, 2, 5, ['#8f62a0', '#e07a5f', '#4a85ab', '#d17a49'][i])}</g>)}
+      {R(x0 + 89, Y + 50, 2, 20, '#3a3f4a')}{R(x0 + 85, Y + 46, 10, 5, '#f2c14e')}{R(x0 + 86, Y + 70, 8, 2, '#3a3f4a')}
+      {plant(x0 + 8, C - 4, false)}
 
-      {R(12, L.corridorY + 14, 24, 8, '#356381')}{R(12, L.corridorY + 22, 24, 14, '#4a85ab')}
-      {R(14, L.corridorY + 22, 20, 12, '#5596bd')}{R(14, L.corridorY + 22, 20, 1, '#7db6d6')}
-      {R(L.openRight - 40, L.corridorY + 14, 24, 8, '#6e4678')}{R(L.openRight - 40, L.corridorY + 22, 24, 14, '#7c4f86')}
-      {R(L.openRight - 38, L.corridorY + 22, 20, 12, '#8f62a0')}{R(L.openRight - 38, L.corridorY + 22, 20, 1, '#a982bb')}
-      {R(54, L.corridorY + 48, 34, 5, '#7a5432')}{R(54, L.corridorY + 48, 34, 1, '#a8794a')}
-      {R(58, L.corridorY + 40, 6, 8, '#c9b48f')}{R(68, L.corridorY + 41, 7, 2, '#e2e8f0')}
-      {R(L.openRight - 32, L.corridorY + 48, 28, 4, '#7a5432')}{R(L.openRight - 31, L.corridorY + 42, 6, 6, '#4b8a3a')}
-      {R(L.openRight - 30, L.corridorY + 40, 4, 3, '#5fb352')}
-      {R(L.openRight - 18, WALL_H + 14, 4, 6, '#8f4a2c')}{R(L.openRight - 17, WALL_H + 16, 2, 3, '#d17a49')}
-      {R(L.openRight - 20, L.corridorY - 24, 4, 6, '#4b8a3a')}{R(L.openRight - 21, L.corridorY - 28, 6, 4, '#5fb352')}
-      {R(16, WALL_H + 10, 22, 12, '#f1f1f1')}{R(18, WALL_H + 12, 18, 2, '#8ab4f8')}{R(18, WALL_H + 16, 12, 2, '#cbd5e1')}
-      {R(L.openRight - 34, L.corridorY - 28, 22, 14, '#2f3f4f')}{R(L.openRight - 33, L.corridorY - 27, 20, 12, '#dbe3ec')}
-      {R(L.openRight - 32, L.corridorY - 26, 18, 2, '#e2e8f0')}{R(L.openRight - 32, L.corridorY - 22, 14, 2, '#94a3b8')}
-      {R(L.openRight - 22, WALL_H + 10, 12, 10, '#ffd98a', { opacity: 0.85 })}
-      {R(L.openRight - 24, WALL_H + 12, 8, 2, '#d97706')}
-      {R(L.openRight - 14, 8, 16, 20, '#8b5a33')}{R(L.openRight - 12, 10, 12, 16, '#c9b48f')}
-      {R(L.openRight - 10, 12, 8, 12, '#6b4a2b')}{R(L.openRight - 9, 13, 6, 4, '#e0b84f')}
+      {sofa(14, C + 14, 30, '#356381', '#4a85ab', '#5596bd')}
+      {sofa(L.W - 52, C + 14, 30, '#6e4678', '#7c4f86', '#8f62a0')}
+      {R(52, C + 18, 10, 16, '#dce1e5')}{R(53, C + 14, 8, 5, '#8ab4f8', { opacity: 0.85 })}{R(55, C + 24, 4, 2, '#4a85ab')}
+      {plant(L.W - 64, C + 40, true)}
+      {R(L.doorX + 22, C + 22, 36, 12, '#3a2a1c')}{R(L.doorX + 22, C + 22, 36, 2, '#d4a84f')}{R(L.doorX + 24, C + 24, 32, 8, '#20160f')}
+      {R(L.doorX + 44, C + 16, 10, 7, '#22262e')}{R(L.doorX + 45, C + 17, 8, 5, '#1d3b5c')}{R(L.doorX + 28, C + 19, 4, 3, '#e07a5f')}
+
+      {pods.length > 0 && <>
+        {R(18, ob - 6, 40, 12, '#6b4a2b')}{R(18, ob - 6, 40, 1, '#8b5a33')}{R(24, ob - 12, 18, 7, '#dce1e5')}{R(26, ob - 10, 14, 2, '#4a5560')}{R(46, ob - 10, 8, 4, '#f4f1e8')}
+        {plant(8, ob + 6, true)}{plant(L.deskRight - 10, ob + 6, true)}
+      </>}
       {R(L.doorX - 16, L.H - 3, 32, 3, '#c9a227')}
       <RoomDoor x={L.doorX} y={L.H - 2} label="EXIT" />
-      {orn}
-      {lamp}
+      {fx.map(([x, y], i) => <g key={'fx' + i} pointerEvents="none">
+        {R(x - 4, y - 1, 8, 2, '#3a3f4a')}{R(x - 3, y + 1, 6, 1, lit ? '#fff1b8' : '#cfd3da')}
+      </g>)}
       {children}
     </g>
   );
@@ -557,7 +571,11 @@ export default function Office({ snap, now, onAgent, tz }) {
               {R(0, 0, 20, 10, '#d8c8a8')}{R(0, 9, 20, 1, '#bdae8c')}{R(10, 0, 1, 10, '#cfbe9c')}{R(1, 2, 8, 1, '#e0d2b5')}
             </pattern>
             <clipPath id="oRoomClip"><rect x={0} y={WALL_H} width={L.W} height={L.H - WALL_H} /></clipPath>
-            <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.55} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
+            <radialGradient id="oLight"><stop offset="0" stopColor="#ffd27a" stopOpacity={1} /><stop offset=".55" stopColor="#ffb648" stopOpacity={0.55} /><stop offset="1" stopColor="#ffb648" stopOpacity={0} /></radialGradient>
+            <pattern id="oWood" width="24" height="6" patternUnits="userSpaceOnUse">
+              {R(0, 0, 24, 6, '#9a6c43')}{R(0, 5, 24, 1, '#7f5634')}{R(8, 0, 1, 5, '#8a5f3a')}{R(2, 2, 6, 1, '#a8794a')}
+            </pattern>
+            <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.35} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
             <pattern id="oTileP" width="12" height="12" patternUnits="userSpaceOnUse">
               {R(0, 0, 12, 12, '#e9dcb8')}{R(0, 0, 6, 6, '#dccb9c')}{R(6, 6, 6, 6, '#dccb9c')}
             </pattern>
@@ -577,6 +595,7 @@ export default function Office({ snap, now, onAgent, tz }) {
               const b = beh[a.agent_id];
               return b ? <Actor key={a.agent_id} a={a} b={b} route={b.route} onAgent={onAgent} /> : null;
             })}
+            <Lighting L={L} k={k} />
           </g>
         </svg>
         <div className="otools">

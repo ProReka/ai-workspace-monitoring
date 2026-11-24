@@ -94,13 +94,13 @@ export function indoorSpots(L) {
   const rx = L.BX + L.roomX;
   return [
     { key: 'coffee', zone: 'pantry', pose: 'cup', x: rx + 40, y: L.BY + L.pantryY + 68, door: 'pantry' },
-    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 100, y: L.BY + L.pantryY + 44, door: 'pantry' },
+    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 64, y: L.BY + L.pantryY + 12, door: 'pantry' },
     { key: 'eat', zone: 'pantry', pose: 'sit', x: rx + 56, y: L.BY + L.pantryY + 68, door: 'pantry' },
     { key: 'sofa1', zone: 'lounge', pose: 'sit', x: rx + 24, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'sofa2', zone: 'lounge', pose: 'sit', x: rx + 80, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'read', zone: 'lounge', pose: 'sit', x: rx + 48, y: L.BY + L.loungeY + 60, door: 'lounge' },
     { key: 'corr1', zone: 'corridor', pose: 'sit', x: L.BX + 28, y: L.BY + L.corridorY + 36 },
-    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.openRight - 30, y: L.BY + L.corridorY + 36 },
+    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.W - 36, y: L.BY + L.corridorY + 36 },
   ];
 }
 
