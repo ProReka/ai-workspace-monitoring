@@ -390,9 +390,10 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   stroke: #5a3a12; stroke-width: 1.5px; letter-spacing: .04em; }
  .office .plate { font-size: 5.2px; font-weight: 700; fill: #fff; paint-order: stroke;
   stroke: rgba(40,25,10,.85); stroke-width: 1.6px; opacity: 0; transition: opacity .15s; pointer-events: none; }
-.office .desk:hover .plate, .office .desk:focus-visible .plate { opacity: 1; }
+ .office .desk:hover .plate, .office .desk:focus-visible .plate, .office .desk.show-label .plate { opacity: 1; }
 .office .olabel { font-size: 5.6px; font-weight: 700; fill: #fff; paint-order: stroke;
-  stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 1; transition: opacity .15s; pointer-events: none; }
+  stroke: rgba(0,0,0,.8); stroke-width: 1.6px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.office .actor:hover .olabel, .office .actor:focus-visible .olabel, .office .actor.show-label .olabel { opacity: 1; }
 .office .lmul { mix-blend-mode: multiply; }
 .office .lovl { mix-blend-mode: overlay; }
 .office .roomtag { font-size: 5px; font-weight: 700; fill: rgba(50,40,30,.65); letter-spacing: .12em; }
@@ -414,6 +415,8 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .office .water rect { animation: owave 2.4s ease-in-out infinite alternate; }
 .office .taskwin { animation: otask .5s steps(2) infinite alternate; }
 .office .overload { animation: pulse .45s steps(2) infinite; }
+.office .music .note { animation: omusic 1.1s steps(2) infinite; }
+@keyframes omusic { 50% { transform: translateY(-2px); opacity: .45; } }
 .office .otools { position: absolute; right: 9px; bottom: 9px; display: flex; gap: 2px; align-items: center;
   background: rgba(16,20,26,.82); border: 1px solid var(--border); padding: 2px; }
 .office .otools button { background: var(--panel); color: var(--text); border: 1px solid var(--border);
