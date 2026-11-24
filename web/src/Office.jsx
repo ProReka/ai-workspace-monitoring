@@ -263,6 +263,7 @@ function Yard({ L, k }) {
   return (
     <g>
       {R(0, 0, L.VW, L.VH, 'url(#oGround)')}
+      {R(0, 0, L.VW, L.VH, 'url(#oGrass)', { opacity: k.day })}
       {path}
       {flora.map(([x, y, c, t], i) => (t
         ? <g key={'f' + i}>{R(x, y, 3, 3, c)}{R(x + 1, y + 1, 1, 1, '#ffe27a')}{R(x + 1, y + 3, 1, 2, '#3f7a35')}</g>
@@ -274,7 +275,7 @@ function Yard({ L, k }) {
         {R(x - 2, L.BY + L.H + 2, 4, 16, '#4a4f5c')}
         {night > 0.3 && <circle cx={x} cy={L.BY + L.H + 4} r={30} fill="url(#oGlow)" pointerEvents="none" />}
       </g>)}
-      <path d={`M0 0H${L.VW}V${L.VH}H0Z M${L.BX} ${L.BY}h${L.W}v${L.H}h-${L.W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.6} pointerEvents="none" />
+      <path d={`M0 0H${L.VW}V${L.VH}H0Z M${L.BX} ${L.BY}h${L.W}v${L.H}h-${L.W}Z`} fill="#0a1030" fillRule="evenodd" opacity={night * 0.4} pointerEvents="none" />
     </g>
   );
 }
@@ -303,19 +304,27 @@ function fixtures(L) {
   return out;
 }
 
-function Lighting({ L, k }) {
+function Lighting({ L, k, glows }) {
   const lit = k.night > 0.3;
-  const dark = Math.min(1, k.night) * 0.62;
+  const dark = Math.min(1, k.night) * 0.45;
   return (
     <g transform={`translate(${L.BX} ${L.BY})`} pointerEvents="none">
-      {dark > 0.02 && R(0, WALL_H, L.W, L.H - WALL_H, '#1a2350', { className: 'lmul', opacity: dark })}
+      {dark > 0.02 && R(0, WALL_H, L.W, L.H - WALL_H, '#3a4680', { className: 'lmul', opacity: dark })}
       {lit && <g className="lovl">
         {fixtures(L).map(([x, y], i) => <g key={i}>
-          <ellipse cx={x} cy={y + 10} rx={58} ry={50} fill="url(#oLight)" />
-          <ellipse cx={x} cy={y + 8} rx={24} ry={20} fill="url(#oLight)" />
+          <ellipse cx={x} cy={y + 10} rx={66} ry={58} fill="url(#oLight)" />
+          <ellipse cx={x} cy={y + 8} rx={34} ry={28} fill="url(#oLight)" />
         </g>)}
       </g>}
-      {lit && <g className="lscr">{fixtures(L).map(([x, y], i) => <circle key={i} cx={x} cy={y + 8} r={22} fill="url(#oGlow)" />)}</g>}
+      {lit && <g className="lscr">
+        {fixtures(L).map(([x, y], i) => <circle key={i} cx={x} cy={y + 8} r={30} fill="url(#oGlow)" />)}
+      </g>}
+      {k.night > 0.1 && <g className="lscr" opacity={Math.min(1, k.night * 1.4)}>
+        {glows.map(([x, y, work], i) => <g key={'g' + i}>
+          <ellipse cx={x} cy={y + 12} rx={work ? 30 : 16} ry={work ? 22 : 12} fill={work ? 'url(#oScrW)' : 'url(#oScrI)'} />
+          {work && <ellipse cx={x} cy={y + 6} rx={12} ry={8} fill="url(#oScrW)" />}
+        </g>)}
+      </g>}
     </g>
   );
 }
@@ -344,6 +353,22 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
     })}
     {R(x - 4, y + 22, w + 8, 2, 'rgba(0,0,0,.25)')}
   </g>);
+  const bean = (x, y, c1, c2) => (<g>
+    {R(x - 8, y + 5, 16, 2, 'rgba(0,0,0,.25)')}{R(x - 8, y - 4, 16, 9, c1)}{R(x - 6, y - 7, 12, 4, c1)}
+    {R(x - 5, y - 3, 10, 5, c2)}{R(x - 4, y - 6, 6, 1, 'rgba(255,255,255,.3)')}
+  </g>);
+  const shelf = (x, y, w, h) => (<g>
+    {R(x, y, w, h, '#5c3f26')}{R(x, y, w, 1, '#8b5a33')}
+    {Array.from({ length: Math.floor((h - 2) / 7) }, (_, r) => <g key={r}>
+      {R(x + 1, y + 2 + r * 7, w - 2, 5, '#3a2818')}
+      {Array.from({ length: Math.floor((w - 2) / 3) }, (_, i) => (hash(`${x}:${r}:${i}`) % 5 ? R(x + 2 + i * 3, y + 3 + r * 7 + (i % 2), 2, 4 - (i % 2),
+        ['#e07a5f', '#6fb3ff', '#e0b84f', '#5fb352', '#8f62a0', '#f4f1e8'][hash(`${x}${r}${i}`) % 6], { key: i }) : null))}
+    </g>)}
+    {R(x, y + h, w, 2, 'rgba(0,0,0,.25)')}
+  </g>);
+  const deskX = (c) => 10 + c * 48 + Math.floor(c / 2) * 8;
+  const free = L.rows * L.cols - L.desks.length;
+  const nook = free >= 2 ? { x: deskX(L.cols - free), w: deskX(L.cols - 1) + 48 - deskX(L.cols - free), y: L.top + (L.rows - 1) * 70 } : null;
   const pods = [];
   for (let c = 0; c < L.cols && c < L.desks.length; c += 2) {
     const w = c + 1 < L.cols && c + 1 < L.desks.length ? 96 : 48;
@@ -403,11 +428,11 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
 
       {R(x0 + 2, WALL_H, 82, 14, '#6b4526')}{R(x0 + 2, WALL_H, 82, 9, '#ece7dc')}{R(x0 + 2, WALL_H + 9, 82, 1, '#c9c2b4')}
       {[0, 1, 2, 3, 4, 5].map((i) => R(x0 + 8 + i * 13, WALL_H + 11, 4, 1, '#c4935e', { key: 'h' + i }))}
-      {R(x0 + 6, WALL_H - 3, 10, 10, '#2e2e33')}{R(x0 + 8, WALL_H, 6, 3, '#4a5560')}{R(x0 + 9, WALL_H + 4, 3, 2, '#f4f1e8')}{R(x0 + 14, WALL_H - 2, 1, 1, '#4ade80')}
-      {R(x0 + 28, WALL_H + 1, 16, 6, '#9aa3ad')}{R(x0 + 29, WALL_H + 2, 14, 4, '#cdd3d9')}{R(x0 + 35, WALL_H - 2, 2, 4, '#6b7280')}
-      {R(x0 + 56, WALL_H - 2, 18, 9, '#dce1e5')}{R(x0 + 57, WALL_H - 1, 12, 7, '#2e2e33')}{R(x0 + 70, WALL_H, 3, 1, '#4ade80')}
-      {R(x0 + 88, WALL_H - 8, 18, 32, '#aab3bd')}{R(x0 + 89, WALL_H - 7, 16, 30, '#e4e8eb')}{R(x0 + 88, WALL_H + 4, 18, 1, '#aab3bd')}
-      {R(x0 + 102, WALL_H - 4, 1, 6, '#8a939d')}{R(x0 + 102, WALL_H + 7, 1, 10, '#8a939d')}
+      {R(x0 + 6, WALL_H + 1, 10, 8, '#2e2e33')}{R(x0 + 8, WALL_H + 3, 6, 2, '#4a5560')}{R(x0 + 9, WALL_H + 6, 3, 2, '#f4f1e8')}{R(x0 + 14, WALL_H + 2, 1, 1, '#4ade80')}
+      {R(x0 + 28, WALL_H + 1, 16, 6, '#9aa3ad')}{R(x0 + 29, WALL_H + 2, 14, 4, '#cdd3d9')}{R(x0 + 35, WALL_H, 2, 2, '#6b7280')}
+      {R(x0 + 56, WALL_H + 1, 18, 8, '#dce1e5')}{R(x0 + 57, WALL_H + 2, 12, 6, '#2e2e33')}{R(x0 + 70, WALL_H + 3, 3, 1, '#4ade80')}
+      {R(x0 + 88, WALL_H + 1, 18, 26, '#aab3bd')}{R(x0 + 89, WALL_H + 2, 16, 24, '#e4e8eb')}{R(x0 + 88, WALL_H + 10, 18, 1, '#aab3bd')}
+      {R(x0 + 102, WALL_H + 4, 1, 4, '#8a939d')}{R(x0 + 102, WALL_H + 13, 1, 8, '#8a939d')}{R(x0 + 88, WALL_H + 27, 18, 2, 'rgba(0,0,0,.25)')}
       {R(x0 + 36, P + 36, 10, 7, '#5c4a39')}{R(x0 + 54, P + 36, 10, 7, '#5c4a39')}
       {R(x0 + 28, P + 44, 44, 13, '#a8794a')}{R(x0 + 28, P + 44, 44, 1, '#c4935e')}{R(x0 + 28, P + 57, 44, 3, '#7a5432')}
       {R(x0 + 36, P + 48, 6, 4, '#f4f1e8')}{R(x0 + 58, P + 48, 6, 4, '#f4f1e8')}{R(x0 + 46, P + 47, 8, 5, '#e07a5f')}{R(x0 + 47, P + 46, 2, 2, '#5fb352')}
@@ -432,6 +457,18 @@ function OfficeRoom({ L, c, k, name, logo, children }) {
       {R(L.doorX + 22, C + 22, 36, 12, '#3a2a1c')}{R(L.doorX + 22, C + 22, 36, 2, '#d4a84f')}{R(L.doorX + 24, C + 24, 32, 8, '#20160f')}
       {R(L.doorX + 44, C + 16, 10, 7, '#22262e')}{R(L.doorX + 45, C + 17, 8, 5, '#1d3b5c')}{R(L.doorX + 28, C + 19, 4, 3, '#e07a5f')}
 
+      {nook && <g>
+        {R(nook.x + 4, nook.y + 4, nook.w - 8, 56, '#3d5a52')}{R(nook.x + 6, nook.y + 6, nook.w - 12, 52, '#4c7064')}
+        {R(nook.x + 6, nook.y + 6, nook.w - 12, 1, '#6b9384')}
+        {shelf(nook.x + 8, nook.y - 2, nook.w - 16, 16)}
+        {sofa(nook.x + nook.w / 2 - 22, nook.y + 20, 44, '#a0522d', '#b8653a', '#cf7a48')}
+        {R(nook.x + nook.w / 2 - 10, nook.y + 46, 20, 6, '#7a5432')}{R(nook.x + nook.w / 2 - 10, nook.y + 46, 20, 1, '#a8794a')}
+        {R(nook.x + nook.w / 2 - 6, nook.y + 47, 4, 3, '#f4f1e8')}{R(nook.x + nook.w / 2 + 2, nook.y + 46, 4, 4, '#4b8a3a')}
+        {bean(nook.x + 16, nook.y + 52, '#d9483b', '#ef6a5b')}{bean(nook.x + nook.w - 16, nook.y + 52, '#e0b84f', '#f2d27a')}
+        {plant(nook.x + 10, nook.y + 24, true)}{plant(nook.x + nook.w - 10, nook.y + 24, true)}
+      </g>}
+      {bean(x0 + 30, Y + 98, '#e07a5f', '#f4a58f')}{bean(x0 + 66, Y + 102, '#4b8a3a', '#6fb35f')}
+      {shelf(x0 + 4, Y + 66, 10, 30)}
       {pods.length > 0 && <>
         {R(18, ob - 6, 40, 12, '#6b4a2b')}{R(18, ob - 6, 40, 1, '#8b5a33')}{R(24, ob - 12, 18, 7, '#dce1e5')}{R(26, ob - 10, 14, 2, '#4a5560')}{R(46, ob - 10, 8, 4, '#f4f1e8')}
         {plant(8, ob + 6, true)}{plant(L.deskRight - 10, ob + 6, true)}
@@ -561,6 +598,9 @@ export default function Office({ snap, now, onAgent, tz }) {
             <pattern id="oGround" width="16" height="16" patternUnits="userSpaceOnUse">
               {R(0, 0, 16, 16, '#171c24')}
             </pattern>
+            <pattern id="oGrass" width="16" height="16" patternUnits="userSpaceOnUse">
+              {R(0, 0, 16, 16, '#4f7a3a')}{R(2, 4, 1, 2, '#5f8d45')}{R(9, 2, 1, 2, '#5f8d45')}{R(13, 10, 1, 2, '#44692f')}{R(5, 12, 2, 1, '#44692f')}
+            </pattern>
             <pattern id="oOpen" width="16" height="16" patternUnits="userSpaceOnUse">
               {R(0, 0, 16, 16, '#5d7280')}{R(1, 1, 1, 1, '#657c8a')}{R(9, 1, 1, 1, '#657c8a')}{R(5, 9, 1, 1, '#536976')}{R(13, 9, 1, 1, '#536976')}
             </pattern>
@@ -571,11 +611,13 @@ export default function Office({ snap, now, onAgent, tz }) {
               {R(0, 0, 20, 10, '#d8c8a8')}{R(0, 9, 20, 1, '#bdae8c')}{R(10, 0, 1, 10, '#cfbe9c')}{R(1, 2, 8, 1, '#e0d2b5')}
             </pattern>
             <clipPath id="oRoomClip"><rect x={0} y={WALL_H} width={L.W} height={L.H - WALL_H} /></clipPath>
+            <radialGradient id="oScrW"><stop offset="0" stopColor="#7dffb0" stopOpacity={0.75} /><stop offset="1" stopColor="#3ad07a" stopOpacity={0} /></radialGradient>
+            <radialGradient id="oScrI"><stop offset="0" stopColor="#8ec5ff" stopOpacity={0.45} /><stop offset="1" stopColor="#4a8fe0" stopOpacity={0} /></radialGradient>
             <radialGradient id="oLight"><stop offset="0" stopColor="#ffd27a" stopOpacity={1} /><stop offset=".55" stopColor="#ffb648" stopOpacity={0.55} /><stop offset="1" stopColor="#ffb648" stopOpacity={0} /></radialGradient>
             <pattern id="oWood" width="24" height="6" patternUnits="userSpaceOnUse">
               {R(0, 0, 24, 6, '#9a6c43')}{R(0, 5, 24, 1, '#7f5634')}{R(8, 0, 1, 5, '#8a5f3a')}{R(2, 2, 6, 1, '#a8794a')}
             </pattern>
-            <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.35} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
+            <radialGradient id="oGlow"><stop offset="0" stopColor="#ffe9a8" stopOpacity={0.5} /><stop offset="1" stopColor="#ffe9a8" stopOpacity={0} /></radialGradient>
             <pattern id="oTileP" width="12" height="12" patternUnits="userSpaceOnUse">
               {R(0, 0, 12, 12, '#e9dcb8')}{R(0, 0, 6, 6, '#dccb9c')}{R(6, 6, 6, 6, '#dccb9c')}
             </pattern>
@@ -595,7 +637,10 @@ export default function Office({ snap, now, onAgent, tz }) {
               const b = beh[a.agent_id];
               return b ? <Actor key={a.agent_id} a={a} b={b} route={b.route} onAgent={onAgent} /> : null;
             })}
-            <Lighting L={L} k={k} />
+            <Lighting L={L} k={k} glows={agents.flatMap((a, i) => {
+              const sc = screenOf(a, beh[a.agent_id] || {});
+              return sc === 'off' ? [] : [[L.desks[i].x + 24, L.desks[i].y + 7, sc === 'work']];
+            })} />
           </g>
         </svg>
         <div className="otools">

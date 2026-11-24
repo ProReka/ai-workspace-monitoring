@@ -99,6 +99,7 @@ export function indoorSpots(L) {
     { key: 'sofa1', zone: 'lounge', pose: 'sit', x: rx + 24, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'sofa2', zone: 'lounge', pose: 'sit', x: rx + 80, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'read', zone: 'lounge', pose: 'sit', x: rx + 48, y: L.BY + L.loungeY + 60, door: 'lounge' },
+    { key: 'bean', zone: 'lounge', pose: 'sit', x: rx + 30, y: L.BY + L.loungeY + 98, door: 'lounge' },
     { key: 'corr1', zone: 'corridor', pose: 'sit', x: L.BX + 28, y: L.BY + L.corridorY + 36 },
     { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.W - 36, y: L.BY + L.corridorY + 36 },
   ];
