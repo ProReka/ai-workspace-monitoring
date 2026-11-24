@@ -8,7 +8,7 @@ const POD_GAP = 8;
 const OUT_X = 170;
 const OUT_Y = 48;
 const HOLD_S = 300;
-const AWAY_AFTER_S = 600;
+const AWAY_AFTER_S = 180;
 
 export const legMs = (a, b) => Math.min(9000, Math.max(700, Math.hypot(b.x - a.x, b.y - a.y) * 55));
 
@@ -94,13 +94,14 @@ export function indoorSpots(L) {
   const rx = L.BX + L.roomX;
   return [
     { key: 'coffee', zone: 'pantry', pose: 'cup', x: rx + 40, y: L.BY + L.pantryY + 68, door: 'pantry' },
-    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 100, y: L.BY + L.pantryY + 44, door: 'pantry' },
+    { key: 'cook', zone: 'pantry', pose: 'stand', x: rx + 64, y: L.BY + L.pantryY + 12, door: 'pantry' },
     { key: 'eat', zone: 'pantry', pose: 'sit', x: rx + 56, y: L.BY + L.pantryY + 68, door: 'pantry' },
     { key: 'sofa1', zone: 'lounge', pose: 'sit', x: rx + 24, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'sofa2', zone: 'lounge', pose: 'sit', x: rx + 80, y: L.BY + L.loungeY + 38, door: 'lounge' },
     { key: 'read', zone: 'lounge', pose: 'sit', x: rx + 48, y: L.BY + L.loungeY + 60, door: 'lounge' },
+    { key: 'bean', zone: 'lounge', pose: 'sit', x: rx + 30, y: L.BY + L.loungeY + 98, door: 'lounge' },
     { key: 'corr1', zone: 'corridor', pose: 'sit', x: L.BX + 28, y: L.BY + L.corridorY + 36 },
-    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.openRight - 30, y: L.BY + L.corridorY + 36 },
+    { key: 'corr2', zone: 'corridor', pose: 'sit', x: L.BX + L.W - 36, y: L.BY + L.corridorY + 36 },
   ];
 }
 
@@ -172,7 +173,8 @@ function homeSpot(id, L) {
   return { ...pool[hash(id + ':place') % pool.length] };
 }
 
-const nextDelay = (id, nowS) => 90 + hash(id + ':when:' + nowS) % 150;
+const nextDelay = (id, nowS) => 60 + hash(id + ':when:' + nowS) % 90;
+const FUN = ['video', 'book', 'game', 'music'];
 
 export function plan(agents, L, prevBeh, nowS) {
   const next = {};
@@ -185,13 +187,13 @@ export function plan(agents, L, prevBeh, nowS) {
     let spot = desk;
     let activity = 'idle';
     let leisure = '';
-    let idleSince = old ? (old.idleSince ?? nowS) : nowS;
+    let idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
     let holdUntil = old ? old.holdUntil || 0 : 0;
     let nextAt = old ? old.nextAt || 0 : nowS + 20 + hash(id + ':phase') % 150;
 
     if (!old) {
       const home = homeSpot(id, L);
-      if (home) { spot = home; activity = 'away'; }
+      if (home) { spot = home; activity = 'away'; } else { activity = 'leisure'; leisure = FUN[hash(id + ':l') % FUN.length]; }
     } else {
       spot = old.spot;
       activity = old.activity;
@@ -206,23 +208,23 @@ export function plan(agents, L, prevBeh, nowS) {
       holdUntil = 0; idleSince = nowS; nextAt = 0;
     } else if (old && old.activity === 'work' && !work) {
       if (!holdUntil) holdUntil = nowS + HOLD_S;
-      activity = 'relax'; spot = desk; leisure = '';
+      activity = 'relax'; spot = desk; leisure = ''; idleSince = nowS;
     } else if (nowS < holdUntil) {
-      activity = 'relax'; spot = desk; leisure = '';
+      activity = 'relax'; spot = desk; leisure = ''; idleSince = nowS;
     } else if (pending) {
       activity = hash(id + ':q') % 100 < 45 ? 'leisure' : 'queue';
       spot = desk;
-      leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l') % 3] : '';
+      leisure = activity === 'leisure' ? FUN[hash(id + ':l') % FUN.length] : '';
     } else if (nowS >= nextAt) {
-      idleSince = old ? (old.idleSince ?? nowS) : nowS - AWAY_AFTER_S;
       const roll = hash(id + ':stay:' + nowS) % 100;
       const mayLeave = nowS - idleSince >= AWAY_AFTER_S;
-      if (roll < 35) activity = 'leisure';
-      else if (!mayLeave || roll < 55) activity = 'idle';
-      else { spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; }
-      leisure = activity === 'leisure' ? ['video', 'book', 'game'][hash(id + ':l:' + nowS) % 3] : '';
+      const away = old && old.spot.zone !== 'desk';
+      if (mayLeave && roll < (away ? 65 : 75)) {
+        spot = chooseAway(id, old && old.spot, L, nowS); activity = 'away'; leisure = '';
+      } else {
+        spot = desk; activity = 'leisure'; leisure = FUN[hash(id + ':l:' + nowS) % FUN.length];
+      }
       nextAt = nowS + nextDelay(id, nowS);
-      if (spot.zone === 'desk' && old && old.spot.zone !== 'desk') idleSince = nowS;
     }
 
     const overload = work && pending;
