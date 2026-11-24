@@ -5,6 +5,8 @@ remaining LLM quota, 9Router combo health, and live traffic — in one screen, n
 
 ![AI Workspace Monitoring](docs/screenshot.png)
 
+Screenshot uses synthetic demo data (`MOCK_TOTAL=1`).
+
 ## What it connects to
 
 | Source | What you get | Required |
